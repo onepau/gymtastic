@@ -70,9 +70,52 @@ function renderPage(page, siteName, siteDesc) {
 }
 
 function renderHomepage(pages, siteName, siteDesc) {
-  const pageLinks = pages.map(p =>
-    `<li><a href="/${p.slug}">${escapeHtml(p.title)}</a></li>`
-  ).join('\n');
+  // Define friendly display names for each page type
+  const typeLabels = {
+    'blog': 'Articles',
+    'glossary': 'Glossary',
+    'how-to': 'How-to Guides',
+    'comparison': 'Comparisons',
+    'listicle': 'Lists',
+    'review': 'Reviews',
+    'alternatives': 'Alternatives',
+    'landing': 'Topics',
+    'hub': 'Topic Guides',
+    'auto': 'General'
+  };
+
+  // Group pages by page_type
+  const groups = {};
+  for (const page of pages) {
+    const type = page.page_type || 'general';
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(page);
+  }
+
+  // Sort group keys so hub pages appear first, then alphabetically
+  const order = ['hub', 'how-to', 'blog', 'glossary', 'comparison', 'listicle', 'review', 'alternatives', 'landing', 'auto', 'general'];
+  const sortedTypes = Object.keys(groups).sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  // Build the grouped HTML
+  const groupsHtml = sortedTypes.map(type => {
+    const label = typeLabels[type] || type;
+    const links = groups[type].map(p =>
+      `<li><a href="/${p.slug}">${escapeHtml(p.title)}</a></li>`
+    ).join('\n');
+
+    return `
+    <section class="group">
+      <h2>${escapeHtml(label)}</h2>
+      <ul>${links}</ul>
+    </section>`;
+  }).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -82,30 +125,44 @@ function renderHomepage(pages, siteName, siteDesc) {
   <title>${escapeHtml(siteName)}</title>
   <meta name="description" content="${escapeHtml(siteDesc)}">
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"WebSite","name":"${siteName}","url":"/"}
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "${siteName}",
+    "url": "https://${siteName}",
+    "description": "${siteDesc}"
+  }
   </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-           line-height: 1.7; color: #1a1a1a; max-width: 820px; margin: 0 auto;
+           line-height: 1.7; color: #1a1a1a; max-width: 960px; margin: 0 auto;
            padding: 2rem 1.5rem; background: #fff; }
-    h1 { font-size: 2.2rem; font-weight: 800; }
+    header { border-bottom: 1px solid #e5e5e5; padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    header h1 { margin: 0 0 0.25rem; font-size: 1.8rem; font-weight: 800; }
+    header p { margin: 0; color: #555; }
+    .group { margin-bottom: 3rem; }
+    .group h2 { font-size: 1.2rem; font-weight: 700; text-transform: uppercase;
+                letter-spacing: 0.05em; color: #555; border-bottom: 2px solid #e5e5e5;
+                padding-bottom: 0.5rem; margin-bottom: 1rem; }
     ul { list-style: none; padding: 0; display: grid;
-         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
-    li a { display: block; padding: 0.8rem 1rem; border: 1px solid #e5e5e5;
+         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.6rem; }
+    li a { display: block; padding: 0.7rem 1rem; border: 1px solid #e5e5e5;
            border-radius: 6px; text-decoration: none; color: #2563eb;
-           transition: border-color 0.15s; font-size: 0.95rem; }
-    li a:hover { border-color: #2563eb; }
+           font-size: 0.92rem; transition: border-color 0.15s, background 0.15s; }
+    li a:hover { border-color: #2563eb; background: #f0f5ff; }
     footer { border-top: 1px solid #e5e5e5; margin-top: 4rem; padding-top: 1.5rem;
              color: #666; font-size: 0.9rem; }
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(siteName)}</h1>
-  <p>${escapeHtml(siteDesc)}</p>
-  <ul>
-    ${pageLinks}
-  </ul>
+  <header>
+    <h1>${escapeHtml(siteName)}</h1>
+    <p>${escapeHtml(siteDesc)}</p>
+  </header>
+  <main>
+    ${groupsHtml}
+  </main>
   <footer>
     <p>© ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
   </footer>
@@ -165,9 +222,11 @@ export default {
 
     // Homepage
     if (path === '/' || path === '') {
-      const { results } = await env.DB.prepare(
-        'SELECT slug, title FROM pages ORDER BY id LIMIT 100'
-      ).all();
+  const { results } = await env.DB.prepare(
+    'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 500'
+  ).all();
+
+        
 
       ctx.waitUntil(
         env.DB.prepare(
