@@ -11,12 +11,49 @@ function isBot(userAgent) {
     userAgent.toLowerCase().includes(pattern.toLowerCase())
   );
 }
+function getSchemaForPage(page, host) {
+  const base = {
+    "@context": "https://schema.org",
+    "@graph": []
+  };
+
+  // Article schema for all pages
+  base["@graph"].push({
+    "@type": "Article",
+    "headline": page.title,
+    "description": page.meta_description,
+    "url": `https://${host}/${page.slug}`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "Gymtastic",
+      "url": `https://${host}`
+    }
+  });
+
+  // Add page-type specific schema
+  if (page.page_type === 'glossary') {
+    base["@graph"].push({
+      "@type": "DefinedTerm",
+      "name": page.title,
+      "description": page.meta_description
+    });
+  }
+
+  if (page.page_type === 'how-to') {
+    base["@graph"].push({
+      "@type": "HowTo",
+      "name": page.title,
+      "description": page.meta_description
+    });
+  }
+
+  return JSON.stringify(base);
+}
+
 
 function renderPage(page, siteName, siteDesc) {
-  const schemaBlock = page.schema_json
-    ? `<script type="application/ld+json">${page.schema_json}</script>`
-    : '';
-
+    const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
+    
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
