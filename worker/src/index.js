@@ -105,6 +105,95 @@ function renderPage(page, siteName, siteDesc) {
 </body>
 </html>`;
 }
+// Simple admin — protect with a secret token
+const ADMIN_TOKEN = env.ADMIN_TOKEN || 'change-this-token';
+
+if (path === '/admin') {
+  const token = url.searchParams.get('token');
+  if (token !== ADMIN_TOKEN) {
+    return new Response('Unauthorised', { status: 401 });
+  }
+
+  return new Response(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add page — Admin</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+    label { display: block; font-weight: 600; margin: 1rem 0 0.25rem; }
+    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
+                              border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
+    textarea { height: 300px; font-family: monospace; }
+    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #2563eb;
+             color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .success { background: #d1fae5; border: 1px solid #6ee7b7; padding: 1rem;
+               border-radius: 4px; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Add a new page</h1>
+  <form method="POST" action="/admin/save?token=${ADMIN_TOKEN}">
+    <label for="slug">Slug (URL path, e.g. gymnastics-scoring-guide)</label>
+    <input type="text" id="slug" name="slug" required placeholder="gymnastics-scoring-guide">
+
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required>
+
+    <label for="meta_description">Meta description</label>
+    <input type="text" id="meta_description" name="meta_description">
+
+    <label for="keyword">Keyword</label>
+    <input type="text" id="keyword" name="keyword">
+
+    <label for="page_type">Page type</label>
+    <select id="page_type" name="page_type">
+      <option value="blog">Article</option>
+      <option value="hub">Hub / Topic guide</option>
+      <option value="how-to">How-to guide</option>
+      <option value="glossary">Glossary</option>
+      <option value="comparison">Comparison</option>
+      <option value="listicle">List</option>
+      <option value="review">Review</option>
+      <option value="landing">Landing page</option>
+    </select>
+
+    <label for="body_html">Content (HTML)</label>
+    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>"></textarea>
+
+    <button type="submit">Save page</button>
+  </form>
+</body>
+</html>`, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+}
+
+// Handle the form submission
+if (path === '/admin/save' && request.method === 'POST') {
+  const token = url.searchParams.get('token');
+  if (token !== ADMIN_TOKEN) {
+    return new Response('Unauthorised', { status: 401 });
+  }
+
+  const formData = await request.formData();
+  const slug = formData.get('slug')?.trim().toLowerCase().replace(/\s+/g, '-');
+  const title = formData.get('title')?.trim();
+  const meta_description = formData.get('meta_description')?.trim();
+  const keyword = formData.get('keyword')?.trim();
+  const page_type = formData.get('page_type')?.trim();
+  const body_html = formData.get('body_html')?.trim();
+
+  if (!slug || !title || !body_html) {
+    return new Response('Missing required fields', { status: 400 });
+  }
+
+  await env.DB.prepare(
+    'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(slug, title, meta_description, keyword, page_type, body_html).run();
+
+  return Response.redirect(`https://gymtastic.cc/${slug}`, 302);
+}
 
 function renderHomepage(pages, siteName, siteDesc) {
   // Define friendly display names for each page type
