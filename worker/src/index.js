@@ -1,4 +1,3 @@
-// Known bot user agents for server-side analytics
 const BOT_PATTERNS = [
   'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'Googlebot', 'GoogleOther',
   'bingbot', 'AhrefsBot', 'SemrushBot', 'DotBot', 'PerplexityBot',
@@ -11,13 +10,12 @@ function isBot(userAgent) {
     userAgent.toLowerCase().includes(pattern.toLowerCase())
   );
 }
+
 function getSchemaForPage(page, host) {
   const base = {
     "@context": "https://schema.org",
     "@graph": []
   };
-
-  // Article schema for all pages
   base["@graph"].push({
     "@type": "Article",
     "headline": page.title,
@@ -29,8 +27,6 @@ function getSchemaForPage(page, host) {
       "url": `https://${host}`
     }
   });
-
-  // Add page-type specific schema
   if (page.page_type === 'glossary') {
     base["@graph"].push({
       "@type": "DefinedTerm",
@@ -38,7 +34,6 @@ function getSchemaForPage(page, host) {
       "description": page.meta_description
     });
   }
-
   if (page.page_type === 'how-to') {
     base["@graph"].push({
       "@type": "HowTo",
@@ -46,14 +41,11 @@ function getSchemaForPage(page, host) {
       "description": page.meta_description
     });
   }
-
   return JSON.stringify(base);
 }
 
-
 function renderPage(page, siteName, siteDesc) {
-    const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
-    
+  const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,98 +97,8 @@ function renderPage(page, siteName, siteDesc) {
 </body>
 </html>`;
 }
-// Simple admin — protect with a secret token
-const ADMIN_TOKEN = env.ADMIN_TOKEN || 'change-this-token';
-
-if (path === '/admin') {
-  const token = url.searchParams.get('token');
-  if (token !== ADMIN_TOKEN) {
-    return new Response('Unauthorised', { status: 401 });
-  }
-
-  return new Response(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add page — Admin</title>
-  <style>
-    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
-    label { display: block; font-weight: 600; margin: 1rem 0 0.25rem; }
-    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
-                              border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
-    textarea { height: 300px; font-family: monospace; }
-    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #2563eb;
-             color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-    button:hover { background: #1d4ed8; }
-    .success { background: #d1fae5; border: 1px solid #6ee7b7; padding: 1rem;
-               border-radius: 4px; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>Add a new page</h1>
-  <form method="POST" action="/admin/save?token=${ADMIN_TOKEN}">
-    <label for="slug">Slug (URL path, e.g. gymnastics-scoring-guide)</label>
-    <input type="text" id="slug" name="slug" required placeholder="gymnastics-scoring-guide">
-
-    <label for="title">Title</label>
-    <input type="text" id="title" name="title" required>
-
-    <label for="meta_description">Meta description</label>
-    <input type="text" id="meta_description" name="meta_description">
-
-    <label for="keyword">Keyword</label>
-    <input type="text" id="keyword" name="keyword">
-
-    <label for="page_type">Page type</label>
-    <select id="page_type" name="page_type">
-      <option value="blog">Article</option>
-      <option value="hub">Hub / Topic guide</option>
-      <option value="how-to">How-to guide</option>
-      <option value="glossary">Glossary</option>
-      <option value="comparison">Comparison</option>
-      <option value="listicle">List</option>
-      <option value="review">Review</option>
-      <option value="landing">Landing page</option>
-    </select>
-
-    <label for="body_html">Content (HTML)</label>
-    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>"></textarea>
-
-    <button type="submit">Save page</button>
-  </form>
-</body>
-</html>`, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
-}
-
-// Handle the form submission
-if (path === '/admin/save' && request.method === 'POST') {
-  const token = url.searchParams.get('token');
-  if (token !== ADMIN_TOKEN) {
-    return new Response('Unauthorised', { status: 401 });
-  }
-
-  const formData = await request.formData();
-  const slug = formData.get('slug')?.trim().toLowerCase().replace(/\s+/g, '-');
-  const title = formData.get('title')?.trim();
-  const meta_description = formData.get('meta_description')?.trim();
-  const keyword = formData.get('keyword')?.trim();
-  const page_type = formData.get('page_type')?.trim();
-  const body_html = formData.get('body_html')?.trim();
-
-  if (!slug || !title || !body_html) {
-    return new Response('Missing required fields', { status: 400 });
-  }
-
-  await env.DB.prepare(
-    'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(slug, title, meta_description, keyword, page_type, body_html).run();
-
-  return Response.redirect(`https://gymtastic.cc/${slug}`, 302);
-}
 
 function renderHomepage(pages, siteName, siteDesc) {
-  // Define friendly display names for each page type
   const typeLabels = {
     'blog': 'Articles',
     'glossary': 'Glossary',
@@ -209,16 +111,12 @@ function renderHomepage(pages, siteName, siteDesc) {
     'hub': 'Topic Guides',
     'auto': 'General'
   };
-
-  // Group pages by page_type
   const groups = {};
   for (const page of pages) {
     const type = page.page_type || 'general';
     if (!groups[type]) groups[type] = [];
     groups[type].push(page);
   }
-
-  // Sort group keys so hub pages appear first, then alphabetically
   const order = ['hub', 'how-to', 'blog', 'glossary', 'comparison', 'listicle', 'review', 'alternatives', 'landing', 'auto', 'general'];
   const sortedTypes = Object.keys(groups).sort((a, b) => {
     const ai = order.indexOf(a);
@@ -228,14 +126,11 @@ function renderHomepage(pages, siteName, siteDesc) {
     if (bi === -1) return -1;
     return ai - bi;
   });
-
-  // Build the grouped HTML
   const groupsHtml = sortedTypes.map(type => {
     const label = typeLabels[type] || type;
     const links = groups[type].map(p =>
       `<li><a href="/${p.slug}">${escapeHtml(p.title)}</a></li>`
     ).join('\n');
-
     return `
     <section class="group">
       <h2>${escapeHtml(label)}</h2>
@@ -300,7 +195,6 @@ function renderSitemap(pages, host) {
   const urls = pages.map(p =>
     `<url><loc>https://${host}/${p.slug}</loc><changefreq>monthly</changefreq></url>`
   ).join('\n');
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://${host}/</loc><changefreq>weekly</changefreq></url>
@@ -320,15 +214,89 @@ function escapeHtml(str) {
 
 export default {
   async fetch(request, env, ctx) {
-    console.log('env keys:', JSON.stringify(Object.keys(env)));
-    console.log('DB:', env.DB);
     const url = new URL(request.url);
     const path = url.pathname;
     const userAgent = request.headers.get('user-agent') || '';
     const country = request.headers.get('cf-ipcountry') || 'XX';
     const bot = isBot(userAgent) ? 1 : 0;
+    const ADMIN_TOKEN = env.ADMIN_TOKEN || 'change-this-token';
 
-    // XML sitemap
+    // Admin form
+    if (path === '/admin') {
+      const token = url.searchParams.get('token');
+      if (token !== ADMIN_TOKEN) {
+        return new Response('Unauthorised', { status: 401 });
+      }
+      return new Response(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add page — Admin</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+    label { display: block; font-weight: 600; margin: 1rem 0 0.25rem; }
+    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
+                              border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
+    textarea { height: 300px; font-family: monospace; }
+    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #2563eb;
+             color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <h1>Add a new page</h1>
+  <form method="POST" action="/admin/save?token=${ADMIN_TOKEN}">
+    <label for="slug">Slug (URL path, e.g. gymnastics-scoring-guide)</label>
+    <input type="text" id="slug" name="slug" required placeholder="gymnastics-scoring-guide">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required>
+    <label for="meta_description">Meta description</label>
+    <input type="text" id="meta_description" name="meta_description">
+    <label for="keyword">Keyword</label>
+    <input type="text" id="keyword" name="keyword">
+    <label for="page_type">Page type</label>
+    <select id="page_type" name="page_type">
+      <option value="blog">Article</option>
+      <option value="hub">Hub / Topic guide</option>
+      <option value="how-to">How-to guide</option>
+      <option value="glossary">Glossary</option>
+      <option value="comparison">Comparison</option>
+      <option value="listicle">List</option>
+      <option value="review">Review</option>
+      <option value="landing">Landing page</option>
+    </select>
+    <label for="body_html">Content (HTML)</label>
+    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>"></textarea>
+    <button type="submit">Save page</button>
+  </form>
+</body>
+</html>`, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+    }
+
+    // Admin save
+    if (path === '/admin/save' && request.method === 'POST') {
+      const token = url.searchParams.get('token');
+      if (token !== ADMIN_TOKEN) {
+        return new Response('Unauthorised', { status: 401 });
+      }
+      const formData = await request.formData();
+      const slug = formData.get('slug')?.trim().toLowerCase().replace(/\s+/g, '-');
+      const title = formData.get('title')?.trim();
+      const meta_description = formData.get('meta_description')?.trim();
+      const keyword = formData.get('keyword')?.trim();
+      const page_type = formData.get('page_type')?.trim();
+      const body_html = formData.get('body_html')?.trim();
+      if (!slug || !title || !body_html) {
+        return new Response('Missing required fields', { status: 400 });
+      }
+      await env.DB.prepare(
+        'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html) VALUES (?, ?, ?, ?, ?, ?)'
+      ).bind(slug, title, meta_description, keyword, page_type, body_html).run();
+      return Response.redirect(`https://gymtastic.cc/${slug}`, 302);
+    }
+
+    // Sitemap
     if (path === '/sitemap.xml') {
       const { results } = await env.DB.prepare(
         'SELECT slug FROM pages ORDER BY id LIMIT 50000'
@@ -348,49 +316,39 @@ export default {
 
     // Homepage
     if (path === '/' || path === '') {
-  const { results } = await env.DB.prepare(
-    'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 500'
-  ).all();
-
-        
-
+      const { results } = await env.DB.prepare(
+        'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 500'
+      ).all();
       ctx.waitUntil(
         env.DB.prepare(
           'INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)'
         ).bind('/', userAgent.slice(0, 200), country, bot).run()
       );
-
       return new Response(
         renderHomepage(results, env.SITE_NAME, env.SITE_DESCRIPTION),
         { headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'public, max-age=300' } }
       );
     }
 
-    // Individual page (slug is everything after the leading slash)
+    // Individual pages
     const slug = path.slice(1).replace(/\/$/, '');
-
     if (!slug || slug.includes('..') || slug.includes('<')) {
       return new Response('Not found', { status: 404 });
     }
-
     const page = await env.DB.prepare(
       'SELECT * FROM pages WHERE slug = ?'
     ).bind(slug).first();
-
     if (!page) {
       return new Response('Page not found', {
         status: 404,
         headers: { 'Content-Type': 'text/plain' }
       });
     }
-
-    // Record the visit asynchronously (does not block the response)
     ctx.waitUntil(
       env.DB.prepare(
         'INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)'
       ).bind(slug, userAgent.slice(0, 200), country, bot).run()
     );
-
     return new Response(
       renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION),
       {
