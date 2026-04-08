@@ -44,6 +44,79 @@ function getSchemaForPage(page, host) {
   return JSON.stringify(base);
 }
 
+const SHARED_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --accent:  #e8272b;
+    --text:    #1a1a1a;
+    --muted:   #6b7280;
+    --border:  #e5e7eb;
+    --bg-soft: #f8f8f6;
+  }
+
+  body {
+    font-family: 'Barlow', system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--text);
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    background: #fff;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  header a {
+    text-decoration: none;
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  header a span { color: var(--accent); }
+
+  h1, h2, h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  p { margin: 0 0 1.4rem; }
+
+  a { color: var(--accent); text-decoration-color: transparent; transition: text-decoration-color 0.15s; }
+  a:hover { text-decoration-color: var(--accent); }
+
+  table { border-collapse: collapse; width: 100%; margin: 1.75rem 0; font-size: 0.95rem; }
+  th, td { border: 1px solid var(--border); padding: 0.65rem 1rem; text-align: left; }
+  th { background: var(--bg-soft); font-weight: 700; font-size: 0.8rem;
+       text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:nth-child(even) td { background: var(--bg-soft); }
+
+  code { background: var(--bg-soft); padding: 0.15rem 0.45rem;
+         border-radius: 4px; font-size: 0.875em; border: 1px solid var(--border); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+`;
+
 function renderPage(page, siteName, siteDesc) {
   const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
   return `<!DOCTYPE html>
@@ -59,40 +132,42 @@ function renderPage(page, siteName, siteDesc) {
   <link rel="canonical" href="/${page.slug}">
   ${schemaBlock}
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-           line-height: 1.7; color: #1a1a1a; max-width: 820px; margin: 0 auto;
-           padding: 2rem 1.5rem; background: #fff; }
-    header { border-bottom: 1px solid #e5e5e5; padding-bottom: 1.5rem; margin-bottom: 2rem; }
-    header a { text-decoration: none; color: #1a1a1a; font-weight: 700; font-size: 1.1rem; }
-    h1 { font-size: 2rem; line-height: 1.3; font-weight: 800; margin: 0 0 1rem; }
-    h2 { font-size: 1.4rem; margin-top: 2.5rem; }
-    h3 { font-size: 1.15rem; margin-top: 2rem; }
-    p { margin: 0 0 1.2rem; }
-    a { color: #2563eb; }
-    table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
-    th, td { border: 1px solid #e5e5e5; padding: 0.6rem 1rem; text-align: left; }
-    th { background: #f9f9f9; font-weight: 600; }
-    code { background: #f4f4f4; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
-    footer { border-top: 1px solid #e5e5e5; margin-top: 4rem; padding-top: 1.5rem;
-             color: #666; font-size: 0.9rem; }
-    .breadcrumb { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
-    .breadcrumb a { color: #666; }
+    ${SHARED_STYLES}
+
+    body { max-width: 860px; }
+
+    h1 { font-size: 2.6rem; margin: 0 0 1rem; }
+    h2 { font-size: 1.75rem; margin-top: 2.75rem; padding-top: 2.75rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.3rem; margin-top: 2rem; }
+
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.75rem; }
+    .breadcrumb a { color: var(--muted); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent); }
+
+    .meta {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
 <body>
   <header>
-    <a href="/">${escapeHtml(siteName)}</a>
+    <a href="/"><span>Gym</span>tastic</a>
   </header>
   <nav class="breadcrumb">
-    <a href="/">Home</a> › <span>${escapeHtml(page.title)}</span>
+    <a href="/">Home</a> &rsaquo; <span>${escapeHtml(page.title)}</span>
   </nav>
   <main>
+    <p class="meta">${escapeHtml(page.page_type || '')}</p>
     <h1>${escapeHtml(page.title)}</h1>
     ${page.body_html || ''}
   </main>
   <footer>
-    <p>© ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
+    <p>&copy; ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
   </footer>
 </body>
 </html>`;
@@ -100,23 +175,25 @@ function renderPage(page, siteName, siteDesc) {
 
 function renderHomepage(pages, siteName, siteDesc) {
   const typeLabels = {
-    'blog': 'Articles',
-    'glossary': 'Glossary',
-    'how-to': 'How-to Guides',
-    'comparison': 'Comparisons',
-    'listicle': 'Lists',
-    'review': 'Reviews',
+    'blog':         'Articles',
+    'glossary':     'Glossary',
+    'how-to':       'How-to guides',
+    'comparison':   'Comparisons',
+    'listicle':     'Lists',
+    'review':       'Reviews',
     'alternatives': 'Alternatives',
-    'landing': 'Topics',
-    'hub': 'Topic Guides',
-    'auto': 'General'
+    'landing':      'Topics',
+    'hub':          'Topic guides',
+    'auto':         'General'
   };
+
   const groups = {};
   for (const page of pages) {
     const type = page.page_type || 'general';
     if (!groups[type]) groups[type] = [];
     groups[type].push(page);
   }
+
   const order = ['hub', 'how-to', 'blog', 'glossary', 'comparison', 'listicle', 'review', 'alternatives', 'landing', 'auto', 'general'];
   const sortedTypes = Object.keys(groups).sort((a, b) => {
     const ai = order.indexOf(a);
@@ -126,15 +203,16 @@ function renderHomepage(pages, siteName, siteDesc) {
     if (bi === -1) return -1;
     return ai - bi;
   });
+
   const groupsHtml = sortedTypes.map(type => {
     const label = typeLabels[type] || type;
-    const links = groups[type].map(p =>
-      `<li><a href="/${p.slug}">${escapeHtml(p.title)}</a></li>`
+    const cards = groups[type].map(p =>
+      `<a class="card" href="/${p.slug}">${escapeHtml(p.title)}</a>`
     ).join('\n');
     return `
-    <section class="group">
-      <h2>${escapeHtml(label)}</h2>
-      <ul>${links}</ul>
+    <section>
+      <p class="section-label">${escapeHtml(label)}</p>
+      <div class="card-grid">${cards}</div>
     </section>`;
   }).join('\n');
 
@@ -150,42 +228,67 @@ function renderHomepage(pages, siteName, siteDesc) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "${siteName}",
-    "url": "https://${siteName}",
+    "url": "https://gymtastic.cc",
     "description": "${siteDesc}"
   }
   </script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-           line-height: 1.7; color: #1a1a1a; max-width: 960px; margin: 0 auto;
-           padding: 2rem 1.5rem; background: #fff; }
-    header { border-bottom: 1px solid #e5e5e5; padding-bottom: 1.5rem; margin-bottom: 2rem; }
-    header h1 { margin: 0 0 0.25rem; font-size: 1.8rem; font-weight: 800; }
-    header p { margin: 0; color: #555; }
-    .group { margin-bottom: 3rem; }
-    .group h2 { font-size: 1.2rem; font-weight: 700; text-transform: uppercase;
-                letter-spacing: 0.05em; color: #555; border-bottom: 2px solid #e5e5e5;
-                padding-bottom: 0.5rem; margin-bottom: 1rem; }
-    ul { list-style: none; padding: 0; display: grid;
-         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.6rem; }
-    li a { display: block; padding: 0.7rem 1rem; border: 1px solid #e5e5e5;
-           border-radius: 6px; text-decoration: none; color: #2563eb;
-           font-size: 0.92rem; transition: border-color 0.15s, background 0.15s; }
-    li a:hover { border-color: #2563eb; background: #f0f5ff; }
-    footer { border-top: 1px solid #e5e5e5; margin-top: 4rem; padding-top: 1.5rem;
-             color: #666; font-size: 0.9rem; }
+    ${SHARED_STYLES}
+
+    body { max-width: 1040px; }
+
+    .site-desc { color: var(--muted); margin: -1.5rem 0 2.5rem; font-size: 1rem; }
+
+    .section-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      border-left: 3px solid var(--accent);
+      padding-left: 0.6rem;
+      margin: 3rem 0 0.75rem;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      display: block;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 600;
+      line-height: 1.4;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+      color: var(--accent);
+      text-decoration-color: transparent;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>${escapeHtml(siteName)}</h1>
-    <p>${escapeHtml(siteDesc)}</p>
+    <a href="/"><span>Gym</span>tastic</a>
   </header>
+  <p class="site-desc">${escapeHtml(siteDesc)}</p>
   <main>
     ${groupsHtml}
   </main>
   <footer>
-    <p>© ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
+    <p>&copy; ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
   </footer>
 </body>
 </html>`;
@@ -239,9 +342,9 @@ export default {
     input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
                               border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
     textarea { height: 300px; font-family: monospace; }
-    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #2563eb;
+    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #e8272b;
              color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-    button:hover { background: #1d4ed8; }
+    button:hover { background: #c51f23; }
   </style>
 </head>
 <body>
