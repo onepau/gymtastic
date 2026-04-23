@@ -8,6 +8,16 @@ database_name = "gymtastic-db"
 database_id = "769ecb02-c006-4c2c-af4d-0ff3dfc7535b"
 
 [vars]
-SITE_NAME = "gymtastic.cc"
+SITE_NAME = "Gymtastic"
 SITE_DESCRIPTION = "All you need to know about gymnastics"
 ADMIN_TOKEN = "L9ECXQtITpZOIZW6oyRu7e2fvL14ZqyiC4xyECtMOt6ocZ67kVlwr1cJk8gj7s6A"
+
+# Google Analytics 4 — set to your GA4 measurement ID (e.g. G-XXXXXXXXXX)
+GA_MEASUREMENT_ID = ""
+
+# Google Search Console — paste the content="" value from the verification meta tag
+GSC_VERIFICATION = ""
+
+# Homepage hero section — set HERO_IMAGE_URL to show a hero image + text block
+HERO_IMAGE_URL = ""
+HERO_TEXT = "Your complete gymnastics reference: scoring guides, skill breakdowns, competition rules, and training tips — all in one place."

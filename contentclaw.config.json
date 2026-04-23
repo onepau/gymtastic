@@ -1,0 +1,23 @@
+{
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "language": "en",
+  "tone": "informative",
+  "wordCount": 1000,
+  "brand": {
+      "name": "Gymtastic",
+      "url": "https://gymtastic.cc",
+      "description": "A reference resource for gymnastics rules, scoring, techniques and competition"
+  },
+  "internalLinking": {
+    "enabled": false,
+    "source": "sitemap",
+    "sitemapUrl": "",
+    "urls": []
+  },
+  "server": {
+    "port": 3099,
+    "host": "localhost"
+  },
+  "webSearch": true
+}

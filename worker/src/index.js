@@ -117,8 +117,24 @@ const SHARED_STYLES = `
   }
 `;
 
-function renderPage(page, siteName, siteDesc) {
+function gaSnippet(gaId) {
+  if (!gaId) return '';
+  return `
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtml(gaId)}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '${escapeHtml(gaId)}');
+  </script>`;
+}
+
+function renderPage(page, siteName, siteDesc, gaId) {
   const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
+  const featuredImage = page.image_url
+    ? `<img class="featured-image" src="${escapeHtml(page.image_url)}" alt="${escapeHtml(page.title)}" loading="lazy">`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -129,8 +145,10 @@ function renderPage(page, siteName, siteDesc) {
   <meta property="og:title" content="${escapeHtml(page.title)}">
   <meta property="og:description" content="${escapeHtml(page.meta_description || '')}">
   <meta property="og:type" content="article">
+  ${page.image_url ? `<meta property="og:image" content="${escapeHtml(page.image_url)}">` : ''}
   <link rel="canonical" href="/${page.slug}">
   ${schemaBlock}
+  ${gaSnippet(gaId)}
   <style>
     ${SHARED_STYLES}
 
@@ -152,6 +170,14 @@ function renderPage(page, siteName, siteDesc) {
       color: var(--muted);
       margin-bottom: 1.5rem;
     }
+
+    .featured-image {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+    }
   </style>
 </head>
 <body>
@@ -164,6 +190,7 @@ function renderPage(page, siteName, siteDesc) {
   <main>
     <p class="meta">${escapeHtml(page.page_type || '')}</p>
     <h1>${escapeHtml(page.title)}</h1>
+    ${featuredImage}
     ${page.body_html || ''}
   </main>
   <footer>
@@ -173,7 +200,7 @@ function renderPage(page, siteName, siteDesc) {
 </html>`;
 }
 
-function renderHomepage(pages, siteName, siteDesc) {
+function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText, gscVerification) {
   const typeLabels = {
     'blog':         'Articles',
     'glossary':     'Glossary',
@@ -216,13 +243,26 @@ function renderHomepage(pages, siteName, siteDesc) {
     </section>`;
   }).join('\n');
 
+  const heroSection = heroImageUrl ? `
+  <div class="hero">
+    <div class="hero-text">
+      <h1 class="hero-heading">${escapeHtml(siteName)}</h1>
+      <p class="hero-desc">${escapeHtml(heroText || siteDesc)}</p>
+    </div>
+    <img class="hero-image" src="${escapeHtml(heroImageUrl)}" alt="${escapeHtml(siteName)}" loading="eager">
+  </div>` : `<p class="site-desc">${escapeHtml(siteDesc)}</p>`;
+
+  const gscMeta = gscVerification
+    ? `\n  <meta name="google-site-verification" content="${escapeHtml(gscVerification)}">`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(siteName)}</title>
-  <meta name="description" content="${escapeHtml(siteDesc)}">
+  <meta name="description" content="${escapeHtml(siteDesc)}">${gscMeta}
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -232,12 +272,51 @@ function renderHomepage(pages, siteName, siteDesc) {
     "description": "${siteDesc}"
   }
   </script>
+  ${gaSnippet(gaId)}
   <style>
     ${SHARED_STYLES}
 
     body { max-width: 1040px; }
 
     .site-desc { color: var(--muted); margin: -1.5rem 0 2.5rem; font-size: 1rem; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+      background: var(--bg-soft);
+      border-radius: 12px;
+      padding: 2.5rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (max-width: 640px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-image { order: -1; }
+    }
+
+    .hero-heading {
+      font-size: 2.8rem;
+      margin: 0 0 1rem;
+      line-height: 1.1;
+    }
+
+    .hero-heading span { color: var(--accent); }
+
+    .hero-desc {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    .hero-image {
+      width: 100%;
+      border-radius: 8px;
+      object-fit: cover;
+      max-height: 320px;
+    }
 
     .section-label {
       font-family: 'Barlow Condensed', sans-serif;
@@ -283,7 +362,7 @@ function renderHomepage(pages, siteName, siteDesc) {
   <header>
     <a href="/"><span>Gym</span>tastic</a>
   </header>
-  <p class="site-desc">${escapeHtml(siteDesc)}</p>
+  ${heroSection}
   <main>
     ${groupsHtml}
   </main>
@@ -315,6 +394,181 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+const ADMIN_COOKIE = 'admin_session';
+
+function getAdminCookie(request) {
+  const header = request.headers.get('Cookie') || '';
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name === ADMIN_COOKIE) return decodeURIComponent(rest.join('='));
+  }
+  return null;
+}
+
+function isAuthenticated(request, adminToken) {
+  return getAdminCookie(request) === adminToken;
+}
+
+function setSessionCookie(token, clear = false) {
+  const value = clear ? '' : encodeURIComponent(token);
+  const maxAge = clear ? 0 : 60 * 60 * 8; // 8 hours
+  return `${ADMIN_COOKIE}=${value}; HttpOnly; Path=/admin; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+function redirect(location) {
+  return new Response(null, { status: 302, headers: { Location: location } });
+}
+
+function adminStyles() {
+  return `
+    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #6b7280; margin-bottom: 2rem; font-size: 0.9rem; }
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+    .nav h1 { margin: 0; }
+    label { display: block; font-weight: 600; margin: 1rem 0 0.25rem; }
+    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
+                              border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
+    textarea { height: 300px; font-family: monospace; }
+    .btn { display: inline-block; margin-top: 1.5rem; padding: 0.65rem 1.75rem; background: #e8272b;
+           color: white; border: none; border-radius: 4px; font-size: 0.95rem; cursor: pointer;
+           text-decoration: none; }
+    .btn:hover { background: #c51f23; }
+    .btn-secondary { background: #374151; margin-left: 0.75rem; }
+    .btn-secondary:hover { background: #1f2937; }
+    .btn-ghost { background: transparent; color: #6b7280; border: 1px solid #d1d5db; margin-left: 0.75rem; }
+    .btn-ghost:hover { background: #f3f4f6; color: #374151; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+    th, td { border: 1px solid #e5e7eb; padding: 0.55rem 0.85rem; text-align: left; }
+    th { background: #f9fafb; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:hover td { background: #fef2f2; }
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; background: #fee2e2; color: #b91c1c;
+           border-radius: 3px; font-size: 0.75rem; font-weight: 600; }
+    .hint { font-size: 0.8rem; color: #6b7280; margin: 0.2rem 0 0; }
+    .error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+             padding: 0.65rem 1rem; border-radius: 4px; margin-bottom: 1.25rem; font-size: 0.9rem; }
+  `;
+}
+
+function renderAdminLogin(error) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin login</title>
+  <style>
+    ${adminStyles()}
+    body { max-width: 400px; }
+    .login-box { margin-top: 4rem; }
+    .logo { font-size: 1.1rem; font-weight: 700; color: #e8272b; margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <p class="logo">Gymtastic Admin</p>
+    <h1>Sign in</h1>
+    ${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
+    <form method="POST" action="/admin/login">
+      <label for="token">Admin password</label>
+      <input type="password" id="token" name="token" required autofocus placeholder="Enter admin password">
+      <button class="btn" type="submit" style="width:100%;text-align:center;">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>`;
+}
+
+function renderAdminPageList(pages) {
+  const rows = pages.map(p => `
+    <tr>
+      <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">${escapeHtml(p.title)}</a></td>
+      <td><code>/${escapeHtml(p.slug)}</code></td>
+      <td><span class="tag">${escapeHtml(p.page_type || '')}</span></td>
+      <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">Edit</a></td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Pages</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Pages <span style="font-size:0.85rem;font-weight:400;color:#6b7280">(${pages.length})</span></h1>
+    <form method="POST" action="/admin/logout" style="margin:0">
+      <button class="btn btn-ghost" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem" type="submit">Sign out</button>
+    </form>
+  </div>
+  <a class="btn" style="margin-top:0" href="/admin/new">+ Add new page</a>
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Slug</th><th>Type</th><th></th></tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+}
+
+function renderAdminForm(page) {
+  const isEdit = !!page;
+  const val = (f) => page ? escapeHtml(page[f] || '') : '';
+  const pageTypes = ['blog', 'hub', 'how-to', 'glossary', 'comparison', 'listicle', 'review', 'landing'];
+  const typeOptions = pageTypes.map(t => {
+    const selected = isEdit && page.page_type === t ? ' selected' : '';
+    const labels = { blog: 'Article', hub: 'Hub / Topic guide', 'how-to': 'How-to guide',
+      glossary: 'Glossary', comparison: 'Comparison', listicle: 'List', review: 'Review', landing: 'Landing page' };
+    return `<option value="${t}"${selected}>${labels[t] || t}</option>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isEdit ? 'Edit' : 'Add'} page — Admin</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <h1>${isEdit ? 'Edit page' : 'Add a new page'}</h1>
+  <p class="subtitle"><a href="/admin">&larr; Back to all pages</a></p>
+  <form method="POST" action="/admin/save">
+    <label for="slug">Slug (URL path)</label>
+    <input type="text" id="slug" name="slug" required value="${val('slug')}"
+      placeholder="gymnastics-scoring-guide" ${isEdit ? 'readonly style="background:#f3f4f6;color:#6b7280"' : ''}>
+    ${isEdit ? '<p class="hint">Slug cannot be changed after creation.</p>' : ''}
+
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required value="${val('title')}">
+
+    <label for="meta_description">Meta description</label>
+    <input type="text" id="meta_description" name="meta_description" value="${val('meta_description')}">
+
+    <label for="keyword">Keyword</label>
+    <input type="text" id="keyword" name="keyword" value="${val('keyword')}">
+
+    <label for="image_url">Featured image URL</label>
+    <input type="url" id="image_url" name="image_url" value="${val('image_url')}"
+      placeholder="https://example.com/image.jpg">
+    <p class="hint">Link to an image hosted externally (e.g. Cloudflare R2, Unsplash, Imgur).</p>
+
+    <label for="page_type">Page type</label>
+    <select id="page_type" name="page_type">${typeOptions}</select>
+
+    <label for="body_html">Content (HTML)</label>
+    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>">${val('body_html')}</textarea>
+
+    <button class="btn" type="submit">${isEdit ? 'Save changes' : 'Save page'}</button>
+    <a class="btn btn-secondary" href="/admin">Cancel</a>
+  </form>
+</body>
+</html>`;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -323,66 +577,87 @@ export default {
     const country = request.headers.get('cf-ipcountry') || 'XX';
     const bot = isBot(userAgent) ? 1 : 0;
     const ADMIN_TOKEN = env.ADMIN_TOKEN || 'change-this-token';
+    const GA_ID = env.GA_MEASUREMENT_ID || '';
+    const GSC_VERIFICATION = env.GSC_VERIFICATION || '';
+    const HERO_IMAGE_URL = env.HERO_IMAGE_URL || '';
+    const HERO_TEXT = env.HERO_TEXT || '';
 
-    // Admin form
-    if (path === '/admin') {
-      const token = url.searchParams.get('token');
-      if (token !== ADMIN_TOKEN) {
-        return new Response('Unauthorised', { status: 401 });
+    // Admin — login page
+    if (path === '/admin/login') {
+      if (request.method === 'POST') {
+        const formData = await request.formData();
+        const token = formData.get('token')?.trim();
+        if (token !== ADMIN_TOKEN) {
+          return new Response(renderAdminLogin('Incorrect password. Please try again.'), {
+            status: 401,
+            headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+          });
+        }
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/admin',
+            'Set-Cookie': setSessionCookie(ADMIN_TOKEN)
+          }
+        });
       }
-      return new Response(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add page — Admin</title>
-  <style>
-    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
-    label { display: block; font-weight: 600; margin: 1rem 0 0.25rem; }
-    input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc;
-                              border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
-    textarea { height: 300px; font-family: monospace; }
-    button { margin-top: 1.5rem; padding: 0.75rem 2rem; background: #e8272b;
-             color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
-    button:hover { background: #c51f23; }
-  </style>
-</head>
-<body>
-  <h1>Add a new page</h1>
-  <form method="POST" action="/admin/save?token=${ADMIN_TOKEN}">
-    <label for="slug">Slug (URL path, e.g. gymnastics-scoring-guide)</label>
-    <input type="text" id="slug" name="slug" required placeholder="gymnastics-scoring-guide">
-    <label for="title">Title</label>
-    <input type="text" id="title" name="title" required>
-    <label for="meta_description">Meta description</label>
-    <input type="text" id="meta_description" name="meta_description">
-    <label for="keyword">Keyword</label>
-    <input type="text" id="keyword" name="keyword">
-    <label for="page_type">Page type</label>
-    <select id="page_type" name="page_type">
-      <option value="blog">Article</option>
-      <option value="hub">Hub / Topic guide</option>
-      <option value="how-to">How-to guide</option>
-      <option value="glossary">Glossary</option>
-      <option value="comparison">Comparison</option>
-      <option value="listicle">List</option>
-      <option value="review">Review</option>
-      <option value="landing">Landing page</option>
-    </select>
-    <label for="body_html">Content (HTML)</label>
-    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>"></textarea>
-    <button type="submit">Save page</button>
-  </form>
-</body>
-</html>`, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+      // Already logged in → redirect
+      if (isAuthenticated(request, ADMIN_TOKEN)) {
+        return redirect('/admin');
+      }
+      return new Response(renderAdminLogin(), {
+        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+      });
     }
 
-    // Admin save
-    if (path === '/admin/save' && request.method === 'POST') {
-      const token = url.searchParams.get('token');
-      if (token !== ADMIN_TOKEN) {
-        return new Response('Unauthorised', { status: 401 });
+    // Admin — logout
+    if (path === '/admin/logout' && request.method === 'POST') {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': '/admin/login',
+          'Set-Cookie': setSessionCookie('', true)
+        }
+      });
+    }
+
+    // Guard: all remaining /admin routes require session cookie
+    if (path.startsWith('/admin')) {
+      if (!isAuthenticated(request, ADMIN_TOKEN)) {
+        return redirect('/admin/login');
       }
+    }
+
+    // Admin — page list
+    if (path === '/admin') {
+      const { results } = await env.DB.prepare(
+        'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 1000'
+      ).all();
+      return new Response(renderAdminPageList(results), {
+        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+      });
+    }
+
+    // Admin — new page form
+    if (path === '/admin/new') {
+      return new Response(renderAdminForm(null), {
+        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+      });
+    }
+
+    // Admin — edit existing page
+    if (path === '/admin/edit') {
+      const slug = url.searchParams.get('slug');
+      if (!slug) return redirect('/admin');
+      const page = await env.DB.prepare('SELECT * FROM pages WHERE slug = ?').bind(slug).first();
+      if (!page) return new Response('Page not found', { status: 404 });
+      return new Response(renderAdminForm(page), {
+        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+      });
+    }
+
+    // Admin save (handles both create and update via INSERT OR REPLACE)
+    if (path === '/admin/save' && request.method === 'POST') {
       const formData = await request.formData();
       const slug = formData.get('slug')?.trim().toLowerCase().replace(/\s+/g, '-');
       const title = formData.get('title')?.trim();
@@ -390,13 +665,14 @@ export default {
       const keyword = formData.get('keyword')?.trim();
       const page_type = formData.get('page_type')?.trim();
       const body_html = formData.get('body_html')?.trim();
+      const image_url = formData.get('image_url')?.trim() || null;
       if (!slug || !title || !body_html) {
         return new Response('Missing required fields', { status: 400 });
       }
       await env.DB.prepare(
-        'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(slug, title, meta_description, keyword, page_type, body_html).run();
-      return Response.redirect(`https://gymtastic.cc/${slug}`, 302);
+        'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(slug, title, meta_description, keyword, page_type, body_html, image_url).run();
+      return redirect(`/${slug}`);
     }
 
     // Sitemap
@@ -428,7 +704,7 @@ export default {
         ).bind('/', userAgent.slice(0, 200), country, bot).run()
       );
       return new Response(
-        renderHomepage(results, env.SITE_NAME, env.SITE_DESCRIPTION),
+        renderHomepage(results, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID, HERO_IMAGE_URL, HERO_TEXT, GSC_VERIFICATION),
         { headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'public, max-age=300' } }
       );
     }
@@ -453,7 +729,7 @@ export default {
       ).bind(slug, userAgent.slice(0, 200), country, bot).run()
     );
     return new Response(
-      renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION),
+      renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID),
       {
         headers: {
           'Content-Type': 'text/html; charset=UTF-8',
