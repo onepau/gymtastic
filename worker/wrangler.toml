@@ -19,5 +19,5 @@ GA_MEASUREMENT_ID = ""
 GSC_VERIFICATION = ""
 
 # Homepage hero section — set HERO_IMAGE_URL to show a hero image + text block
-HERO_IMAGE_URL = ""
+HERO_IMAGE_URL = "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=800&q=80"
 HERO_TEXT = "Your complete gymnastics reference: scoring guides, skill breakdowns, competition rules, and training tips — all in one place."
