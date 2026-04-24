@@ -115,7 +115,63 @@ const SHARED_STYLES = `
     color: var(--muted);
     font-size: 0.875rem;
   }
+
+  .ticker-wrap {
+    overflow: hidden;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.45rem 0;
+    margin: -2.5rem -1.5rem 2.5rem;
+    white-space: nowrap;
+  }
+
+  .ticker-label {
+    display: inline-block;
+    background: #c51f23;
+    padding: 0 0.85rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 1rem;
+    vertical-align: middle;
+  }
+
+  .ticker-track {
+    display: inline-block;
+    animation: ticker-scroll 40s linear infinite;
+  }
+
+  .ticker-track:hover { animation-play-state: paused; }
+
+  .ticker-item { display: inline-block; padding: 0 2.5rem; }
+  .ticker-item::before { content: '▸'; margin-right: 0.5rem; opacity: 0.75; }
+
+  @keyframes ticker-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 `;
+
+const TICKER_ITEMS = [
+  'Paris 2024 — Simone Biles wins gold on floor exercise and beam',
+  'World Championships — USA gymnastics team takes all-around title',
+  'Difficulty vs. execution: how the Code of Points scoring works',
+  'Artistic gymnastics has 6 apparatuses for men and 4 for women',
+  'The Yurchenko double pike — most difficult vault in history',
+  'Rhythmic gymnastics combines dance, acrobatics, and apparatus skills',
+  'Trampoline gymnastics debuted at the Sydney 2000 Olympics',
+  'The perfect 10 era ended in 2006 when the open-ended scoring system launched',
+];
+
+function renderTicker() {
+  const doubled = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  const items = doubled.map(t => `<span class="ticker-item">${escapeHtml(t)}</span>`).join('');
+  return `<div class="ticker-wrap"><span class="ticker-label">News</span><span class="ticker-track">${items}</span></div>`;
+}
 
 function gaSnippet(gaId) {
   if (!gaId) return '';
@@ -184,6 +240,7 @@ function renderPage(page, siteName, siteDesc, gaId) {
   <header>
     <a href="/"><span>Gym</span>tastic</a>
   </header>
+  ${renderTicker()}
   <nav class="breadcrumb">
     <a href="/">Home</a> &rsaquo; <span>${escapeHtml(page.title)}</span>
   </nav>
@@ -362,6 +419,7 @@ function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText,
   <header>
     <a href="/"><span>Gym</span>tastic</a>
   </header>
+  ${renderTicker()}
   ${heroSection}
   <main>
     ${groupsHtml}
