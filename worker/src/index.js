@@ -154,7 +154,7 @@ const SHARED_STYLES = `
   .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
 
   .ticker-item { display: inline-block; padding: 0 2.5rem; }
-  .ticker-item::before { content: '\25B8'; margin-right: 0.5rem; opacity: 0.75; }
+  .ticker-item::before { content: '\\25B8'; margin-right: 0.5rem; opacity: 0.75; }
 
   @keyframes ticker-scroll {
     0%   { transform: translateX(0); }
