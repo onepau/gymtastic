@@ -116,28 +116,34 @@ const SHARED_STYLES = `
     font-size: 0.875rem;
   }
 
-  .ticker-wrap {
-    overflow: hidden;
+  .ticker-outer {
+    display: flex;
+    align-items: stretch;
     background: var(--accent);
     color: #fff;
     font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0.03em;
-    padding: 0.45rem 0;
     margin: -2.5rem -1.5rem 2.5rem;
-    white-space: nowrap;
   }
 
   .ticker-label {
-    display: inline-block;
+    flex-shrink: 0;
     background: #c51f23;
-    padding: 0 0.85rem;
+    padding: 0.45rem 0.85rem;
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-right: 1rem;
-    vertical-align: middle;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-wrap {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0.45rem 0;
   }
 
   .ticker-track {
@@ -145,10 +151,10 @@ const SHARED_STYLES = `
     animation: ticker-scroll 40s linear infinite;
   }
 
-  .ticker-track:hover { animation-play-state: paused; }
+  .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
 
   .ticker-item { display: inline-block; padding: 0 2.5rem; }
-  .ticker-item::before { content: '▸'; margin-right: 0.5rem; opacity: 0.75; }
+  .ticker-item::before { content: '\25B8'; margin-right: 0.5rem; opacity: 0.75; }
 
   @keyframes ticker-scroll {
     0%   { transform: translateX(0); }
@@ -170,7 +176,7 @@ const TICKER_ITEMS = [
 function renderTicker() {
   const doubled = [...TICKER_ITEMS, ...TICKER_ITEMS];
   const items = doubled.map(t => `<span class="ticker-item">${escapeHtml(t)}</span>`).join('');
-  return `<div class="ticker-wrap"><span class="ticker-label">News</span><span class="ticker-track">${items}</span></div>`;
+  return `<div class="ticker-outer"><span class="ticker-label">News</span><div class="ticker-wrap"><span class="ticker-track">${items}</span></div></div>`;
 }
 
 function gaSnippet(gaId) {
