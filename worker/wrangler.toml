@@ -2,6 +2,9 @@ name = "gymtastic-worker"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
 
+[triggers]
+crons = ["0 3 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "gymtastic-db"
@@ -10,7 +13,6 @@ database_id = "769ecb02-c006-4c2c-af4d-0ff3dfc7535b"
 [vars]
 SITE_NAME = "Gymtastic"
 SITE_DESCRIPTION = "All you need to know about gymnastics"
-ADMIN_TOKEN = "L9ECXQtITpZOIZW6oyRu7e2fvL14ZqyiC4xyECtMOt6ocZ67kVlwr1cJk8gj7s6A"
 
 # Google Analytics 4 — set to your GA4 measurement ID (e.g. G-XXXXXXXXXX)
 GA_MEASUREMENT_ID = ""
@@ -19,5 +21,6 @@ GA_MEASUREMENT_ID = ""
 GSC_VERIFICATION = ""
 
 # Homepage hero section — set HERO_IMAGE_URL to show a hero image + text block
-HERO_IMAGE_URL = "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=800&q=80"
+HERO_IMAGE_URL = "https://images.unsplash.com/photo-1620188478901-397264fc284b?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 HERO_TEXT = "Your complete gymnastics reference: scoring guides, skill breakdowns, competition rules, and training tips — all in one place."
+

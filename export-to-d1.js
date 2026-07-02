@@ -1,24 +1,33 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+const Database = require("better-sqlite3");
+const fs = require("fs");
+const path = require("path");
 
-const db = new Database(path.join(__dirname, 'contentclaw.db'), { readonly: true });
+const db = new Database(path.join(__dirname, "contentclaw.db"), {
+  readonly: true,
+});
 
-const pages = db.prepare(`
+const pages = db
+  .prepare(
+    `
   SELECT slug, title, meta_description, body as body_html, page_type, keyword
   FROM pages
   WHERE body IS NOT NULL
-`).all();
+`,
+  )
+  .all();
 
 console.log(`Found ${pages.length} pages to export`);
 
 function sqlStr(str) {
   if (!str) return "''";
-  // Only escape single quotes — leave everything else untouched
+  // Reject NUL bytes — they truncate strings silently in SQLite
+  if (str.includes("\0"))
+    throw new Error(`NUL byte in value: ${str.slice(0, 40)}`);
+  // Doubling single quotes is correct SQLite string escaping
   return "'" + str.replace(/'/g, "''") + "'";
 }
 
-const lines = pages.map(page => {
+const lines = pages.map((page) => {
   const slug = sqlStr(page.slug);
   const title = sqlStr(page.title);
   const meta = sqlStr(page.meta_description);
@@ -29,7 +38,7 @@ const lines = pages.map(page => {
   return `INSERT OR IGNORE INTO pages (slug, title, meta_description, body_html, page_type, keyword) VALUES (${slug}, ${title}, ${meta}, ${body}, ${type}, ${keyword});`;
 });
 
-fs.writeFileSync('import-pages.sql', lines.join('\n'));
+fs.writeFileSync("import-pages.sql", lines.join("\n"));
 console.log(`Written ${lines.length} INSERT statements to import-pages.sql`);
 
 db.close();

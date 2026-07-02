@@ -1,47 +1,58 @@
 const BOT_PATTERNS = [
-  'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'Googlebot', 'GoogleOther',
-  'bingbot', 'AhrefsBot', 'SemrushBot', 'DotBot', 'PerplexityBot',
-  'ClaudeBot', 'anthropic-ai', 'facebookexternalhit', 'Twitterbot'
+  "GPTBot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "Googlebot",
+  "GoogleOther",
+  "bingbot",
+  "AhrefsBot",
+  "SemrushBot",
+  "DotBot",
+  "PerplexityBot",
+  "ClaudeBot",
+  "anthropic-ai",
+  "facebookexternalhit",
+  "Twitterbot",
 ];
 
 function isBot(userAgent) {
   if (!userAgent) return false;
-  return BOT_PATTERNS.some(pattern =>
-    userAgent.toLowerCase().includes(pattern.toLowerCase())
+  return BOT_PATTERNS.some((pattern) =>
+    userAgent.toLowerCase().includes(pattern.toLowerCase()),
   );
 }
 
 function getSchemaForPage(page, host) {
   const base = {
     "@context": "https://schema.org",
-    "@graph": []
+    "@graph": [],
   };
   base["@graph"].push({
     "@type": "Article",
-    "headline": page.title,
-    "description": page.meta_description,
-    "url": `https://${host}/${page.slug}`,
-    "publisher": {
+    headline: page.title,
+    description: page.meta_description,
+    url: `https://${host}/${page.slug}`,
+    publisher: {
       "@type": "Organization",
-      "name": "Gymtastic",
-      "url": `https://${host}`
-    }
+      name: "Gymtastic",
+      url: `https://${host}`,
+    },
   });
-  if (page.page_type === 'glossary') {
+  if (page.page_type === "glossary") {
     base["@graph"].push({
       "@type": "DefinedTerm",
-      "name": page.title,
-      "description": page.meta_description
+      name: page.title,
+      description: page.meta_description,
     });
   }
-  if (page.page_type === 'how-to') {
+  if (page.page_type === "how-to") {
     base["@graph"].push({
       "@type": "HowTo",
-      "name": page.title,
-      "description": page.meta_description
+      name: page.title,
+      description: page.meta_description,
     });
   }
-  return JSON.stringify(base);
+  return JSON.stringify(base).replace(/</g, "\\u003c");
 }
 
 const SHARED_STYLES = `
@@ -157,24 +168,26 @@ const SHARED_STYLES = `
 `;
 
 const TICKER_ITEMS = [
-  'Paris 2024 — Simone Biles wins gold on floor exercise and beam',
-  'World Championships — USA gymnastics team takes all-around title',
-  'Difficulty vs. execution: how the Code of Points scoring works',
-  'Artistic gymnastics has 6 apparatuses for men and 4 for women',
-  'The Yurchenko double pike — most difficult vault in history',
-  'Rhythmic gymnastics combines dance, acrobatics, and apparatus skills',
-  'Trampoline gymnastics debuted at the Sydney 2000 Olympics',
-  'The perfect 10 era ended in 2006 when the open-ended scoring system launched',
+  "Paris 2024 — Simone Biles wins gold on floor exercise and beam",
+  "World Championships — USA gymnastics team takes all-around title",
+  "Difficulty vs. execution: how the Code of Points scoring works",
+  "Artistic gymnastics has 6 apparatuses for men and 4 for women",
+  "The Yurchenko double pike — most difficult vault in history",
+  "Rhythmic gymnastics combines dance, acrobatics, and apparatus skills",
+  "Trampoline gymnastics debuted at the Sydney 2000 Olympics",
+  "The perfect 10 era ended in 2006 when the open-ended scoring system launched",
 ];
 
 function renderTicker() {
   const doubled = [...TICKER_ITEMS, ...TICKER_ITEMS];
-  const items = doubled.map(t => `<span class="ticker-item">${escapeHtml(t)}</span>`).join('');
+  const items = doubled
+    .map((t) => `<span class="ticker-item">${escapeHtml(t)}</span>`)
+    .join("");
   return `<div class="ticker-wrap"><span class="ticker-label">News</span><span class="ticker-track">${items}</span></div>`;
 }
 
 function gaSnippet(gaId) {
-  if (!gaId) return '';
+  if (!gaId) return "";
   return `
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtml(gaId)}"></script>
@@ -187,22 +200,22 @@ function gaSnippet(gaId) {
 }
 
 function renderPage(page, siteName, siteDesc, gaId) {
-  const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, 'gymtastic.cc')}</script>`;
+  const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, "gymtastic.cc")}</script>`;
   const featuredImage = page.image_url
     ? `<img class="featured-image" src="${escapeHtml(page.image_url)}" alt="${escapeHtml(page.title)}" loading="lazy">`
-    : '';
+    : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(page.title)} | ${escapeHtml(siteName)}</title>
-  <meta name="description" content="${escapeHtml(page.meta_description || '')}">
+  <meta name="description" content="${escapeHtml(page.meta_description || "")}">
   <meta property="og:title" content="${escapeHtml(page.title)}">
-  <meta property="og:description" content="${escapeHtml(page.meta_description || '')}">
+  <meta property="og:description" content="${escapeHtml(page.meta_description || "")}">
   <meta property="og:type" content="article">
-  ${page.image_url ? `<meta property="og:image" content="${escapeHtml(page.image_url)}">` : ''}
-  <link rel="canonical" href="/${page.slug}">
+  ${page.image_url ? `<meta property="og:image" content="${escapeHtml(page.image_url)}">` : ""}
+  <link rel="canonical" href="/${escapeHtml(page.slug)}">
   ${schemaBlock}
   ${gaSnippet(gaId)}
   <style>
@@ -245,10 +258,10 @@ function renderPage(page, siteName, siteDesc, gaId) {
     <a href="/">Home</a> &rsaquo; <span>${escapeHtml(page.title)}</span>
   </nav>
   <main>
-    <p class="meta">${escapeHtml(page.page_type || '')}</p>
+    <p class="meta">${escapeHtml(page.page_type || "")}</p>
     <h1>${escapeHtml(page.title)}</h1>
     ${featuredImage}
-    ${page.body_html || ''}
+    ${page.body_html || ""}
   </main>
   <footer>
     <p>&copy; ${new Date().getFullYear()} ${escapeHtml(siteName)}</p>
@@ -257,28 +270,48 @@ function renderPage(page, siteName, siteDesc, gaId) {
 </html>`;
 }
 
-function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText, gscVerification) {
+function renderHomepage(
+  pages,
+  siteName,
+  siteDesc,
+  gaId,
+  heroImageUrl,
+  heroText,
+  gscVerification,
+) {
   const typeLabels = {
-    'blog':         'Articles',
-    'glossary':     'Glossary',
-    'how-to':       'How-to guides',
-    'comparison':   'Comparisons',
-    'listicle':     'Lists',
-    'review':       'Reviews',
-    'alternatives': 'Alternatives',
-    'landing':      'Topics',
-    'hub':          'Topic guides',
-    'auto':         'General'
+    blog: "Articles",
+    glossary: "Glossary",
+    "how-to": "How-to guides",
+    comparison: "Comparisons",
+    listicle: "Lists",
+    review: "Reviews",
+    alternatives: "Alternatives",
+    landing: "Topics",
+    hub: "Topic guides",
+    auto: "General",
   };
 
   const groups = {};
   for (const page of pages) {
-    const type = page.page_type || 'general';
+    const type = page.page_type || "general";
     if (!groups[type]) groups[type] = [];
     groups[type].push(page);
   }
 
-  const order = ['hub', 'how-to', 'blog', 'glossary', 'comparison', 'listicle', 'review', 'alternatives', 'landing', 'auto', 'general'];
+  const order = [
+    "hub",
+    "how-to",
+    "blog",
+    "glossary",
+    "comparison",
+    "listicle",
+    "review",
+    "alternatives",
+    "landing",
+    "auto",
+    "general",
+  ];
   const sortedTypes = Object.keys(groups).sort((a, b) => {
     const ai = order.indexOf(a);
     const bi = order.indexOf(b);
@@ -288,30 +321,37 @@ function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText,
     return ai - bi;
   });
 
-  const groupsHtml = sortedTypes.map(type => {
-    const label = typeLabels[type] || type;
-    const cards = groups[type].map(p =>
-      `<a class="card" href="/${p.slug}">${escapeHtml(p.title)}</a>`
-    ).join('\n');
-    return `
+  const groupsHtml = sortedTypes
+    .map((type) => {
+      const label = typeLabels[type] || type;
+      const cards = groups[type]
+        .map(
+          (p) =>
+            `<a class="card" href="/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a>`,
+        )
+        .join("\n");
+      return `
     <section>
       <p class="section-label">${escapeHtml(label)}</p>
       <div class="card-grid">${cards}</div>
     </section>`;
-  }).join('\n');
+    })
+    .join("\n");
 
-  const heroSection = heroImageUrl ? `
+  const heroSection = heroImageUrl
+    ? `
   <div class="hero">
     <div class="hero-text">
       <h1 class="hero-heading">${escapeHtml(siteName)}</h1>
       <p class="hero-desc">${escapeHtml(heroText || siteDesc)}</p>
     </div>
     <img class="hero-image" src="${escapeHtml(heroImageUrl)}" alt="${escapeHtml(siteName)}" loading="eager">
-  </div>` : `<p class="site-desc">${escapeHtml(siteDesc)}</p>`;
+  </div>`
+    : `<p class="site-desc">${escapeHtml(siteDesc)}</p>`;
 
   const gscMeta = gscVerification
     ? `\n  <meta name="google-site-verification" content="${escapeHtml(gscVerification)}">`
-    : '';
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -320,15 +360,7 @@ function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText,
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(siteName)}</title>
   <meta name="description" content="${escapeHtml(siteDesc)}">${gscMeta}
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "${siteName}",
-    "url": "https://gymtastic.cc",
-    "description": "${siteDesc}"
-  }
-  </script>
+  <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "WebSite", name: siteName, url: "https://gymtastic.cc", description: siteDesc }).replace(/</g, "\\u003c")}</script>
   ${gaSnippet(gaId)}
   <style>
     ${SHARED_STYLES}
@@ -432,9 +464,12 @@ function renderHomepage(pages, siteName, siteDesc, gaId, heroImageUrl, heroText,
 }
 
 function renderSitemap(pages, host) {
-  const urls = pages.map(p =>
-    `<url><loc>https://${host}/${p.slug}</loc><changefreq>monthly</changefreq></url>`
-  ).join('\n');
+  const urls = pages
+    .map(
+      (p) =>
+        `<url><loc>https://${host}/${escapeHtml(p.slug)}</loc><changefreq>monthly</changefreq></url>`,
+    )
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://${host}/</loc><changefreq>weekly</changefreq></url>
@@ -443,34 +478,97 @@ function renderSitemap(pages, host) {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
+  if (!str) return "";
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-const ADMIN_COOKIE = 'admin_session';
+const ADMIN_COOKIE = "admin_session";
 
 function getAdminCookie(request) {
-  const header = request.headers.get('Cookie') || '';
-  for (const part of header.split(';')) {
-    const [name, ...rest] = part.trim().split('=');
-    if (name === ADMIN_COOKIE) return decodeURIComponent(rest.join('='));
+  const header = request.headers.get("Cookie") || "";
+  for (const part of header.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === ADMIN_COOKIE) return decodeURIComponent(rest.join("="));
   }
   return null;
 }
 
-function isAuthenticated(request, adminToken) {
-  return getAdminCookie(request) === adminToken;
+async function isAuthenticated(request, adminToken) {
+  return verifySessionToken(getAdminCookie(request), adminToken);
 }
 
-function setSessionCookie(token, clear = false) {
-  const value = clear ? '' : encodeURIComponent(token);
-  const maxAge = clear ? 0 : 60 * 60 * 8; // 8 hours
-  return `${ADMIN_COOKIE}=${value}; HttpOnly; Path=/admin; SameSite=Strict; Max-Age=${maxAge}`;
+function setSessionCookie(value, clear = false) {
+  const cookieValue = clear ? "" : encodeURIComponent(value);
+  const maxAge = clear ? 0 : 60 * 60 * 8;
+  return `${ADMIN_COOKIE}=${cookieValue}; HttpOnly; Secure; Path=/admin; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+async function hmacSign(secret, data) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.generateKey(
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const [macA, macB] = await Promise.all([
+    crypto.subtle.sign("HMAC", key, enc.encode(a)),
+    crypto.subtle.sign("HMAC", key, enc.encode(b)),
+  ]);
+  const va = new Uint8Array(macA);
+  const vb = new Uint8Array(macB);
+  let diff = 0;
+  for (let i = 0; i < va.length; i++) diff |= va[i] ^ vb[i];
+  return diff === 0;
+}
+
+async function createSessionToken(adminToken) {
+  const expiry = Date.now() + 8 * 60 * 60 * 1000;
+  const sig = await hmacSign(adminToken, String(expiry));
+  return `${expiry}.${sig}`;
+}
+
+async function verifySessionToken(cookieValue, adminToken) {
+  if (!cookieValue) return false;
+  const dot = cookieValue.lastIndexOf(".");
+  if (dot === -1) return false;
+  const expiry = cookieValue.slice(0, dot);
+  const sig = cookieValue.slice(dot + 1);
+  if (Date.now() > Number(expiry)) return false;
+  const expected = await hmacSign(adminToken, expiry);
+  return timingSafeEqual(sig, expected);
+}
+
+function securityHeaders(isAdmin = false) {
+  const csp = isAdmin
+    ? `default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'`
+    : `default-src 'self'; script-src 'self' https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
+  return {
+    "Content-Security-Policy": csp,
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  };
 }
 
 function redirect(location) {
@@ -526,7 +624,7 @@ function renderAdminLogin(error) {
   <div class="login-box">
     <p class="logo">Gymtastic Admin</p>
     <h1>Sign in</h1>
-    ${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
+    ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
     <form method="POST" action="/admin/login">
       <label for="token">Admin password</label>
       <input type="password" id="token" name="token" required autofocus placeholder="Enter admin password">
@@ -538,13 +636,17 @@ function renderAdminLogin(error) {
 }
 
 function renderAdminPageList(pages) {
-  const rows = pages.map(p => `
+  const rows = pages
+    .map(
+      (p) => `
     <tr>
       <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">${escapeHtml(p.title)}</a></td>
       <td><code>/${escapeHtml(p.slug)}</code></td>
-      <td><span class="tag">${escapeHtml(p.page_type || '')}</span></td>
+      <td><span class="tag">${escapeHtml(p.page_type || "")}</span></td>
       <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">Edit</a></td>
-    </tr>`).join('');
+    </tr>`,
+    )
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -574,43 +676,62 @@ function renderAdminPageList(pages) {
 
 function renderAdminForm(page) {
   const isEdit = !!page;
-  const val = (f) => page ? escapeHtml(page[f] || '') : '';
-  const pageTypes = ['blog', 'hub', 'how-to', 'glossary', 'comparison', 'listicle', 'review', 'landing'];
-  const typeOptions = pageTypes.map(t => {
-    const selected = isEdit && page.page_type === t ? ' selected' : '';
-    const labels = { blog: 'Article', hub: 'Hub / Topic guide', 'how-to': 'How-to guide',
-      glossary: 'Glossary', comparison: 'Comparison', listicle: 'List', review: 'Review', landing: 'Landing page' };
-    return `<option value="${t}"${selected}>${labels[t] || t}</option>`;
-  }).join('');
+  const val = (f) => (page ? escapeHtml(page[f] || "") : "");
+  const pageTypes = [
+    "blog",
+    "hub",
+    "how-to",
+    "glossary",
+    "comparison",
+    "listicle",
+    "review",
+    "landing",
+  ];
+  const typeOptions = pageTypes
+    .map((t) => {
+      const selected = isEdit && page.page_type === t ? " selected" : "";
+      const labels = {
+        blog: "Article",
+        hub: "Hub / Topic guide",
+        "how-to": "How-to guide",
+        glossary: "Glossary",
+        comparison: "Comparison",
+        listicle: "List",
+        review: "Review",
+        landing: "Landing page",
+      };
+      return `<option value="${t}"${selected}>${labels[t] || t}</option>`;
+    })
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isEdit ? 'Edit' : 'Add'} page — Admin</title>
+  <title>${isEdit ? "Edit" : "Add"} page — Admin</title>
   <style>${adminStyles()}</style>
 </head>
 <body>
-  <h1>${isEdit ? 'Edit page' : 'Add a new page'}</h1>
+  <h1>${isEdit ? "Edit page" : "Add a new page"}</h1>
   <p class="subtitle"><a href="/admin">&larr; Back to all pages</a></p>
   <form method="POST" action="/admin/save">
     <label for="slug">Slug (URL path)</label>
-    <input type="text" id="slug" name="slug" required value="${val('slug')}"
-      placeholder="gymnastics-scoring-guide" ${isEdit ? 'readonly style="background:#f3f4f6;color:#6b7280"' : ''}>
-    ${isEdit ? '<p class="hint">Slug cannot be changed after creation.</p>' : ''}
+    <input type="text" id="slug" name="slug" required value="${val("slug")}"
+      placeholder="gymnastics-scoring-guide" ${isEdit ? 'readonly style="background:#f3f4f6;color:#6b7280"' : ""}>
+    ${isEdit ? '<p class="hint">Slug cannot be changed after creation.</p>' : ""}
 
     <label for="title">Title</label>
-    <input type="text" id="title" name="title" required value="${val('title')}">
+    <input type="text" id="title" name="title" required value="${val("title")}">
 
     <label for="meta_description">Meta description</label>
-    <input type="text" id="meta_description" name="meta_description" value="${val('meta_description')}">
+    <input type="text" id="meta_description" name="meta_description" value="${val("meta_description")}">
 
     <label for="keyword">Keyword</label>
-    <input type="text" id="keyword" name="keyword" value="${val('keyword')}">
+    <input type="text" id="keyword" name="keyword" value="${val("keyword")}">
 
     <label for="image_url">Featured image URL</label>
-    <input type="url" id="image_url" name="image_url" value="${val('image_url')}"
+    <input type="url" id="image_url" name="image_url" value="${val("image_url")}"
       placeholder="https://example.com/image.jpg">
     <p class="hint">Link to an image hosted externally (e.g. Cloudflare R2, Unsplash, Imgur).</p>
 
@@ -618,183 +739,295 @@ function renderAdminForm(page) {
     <select id="page_type" name="page_type">${typeOptions}</select>
 
     <label for="body_html">Content (HTML)</label>
-    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>">${val('body_html')}</textarea>
+    <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>">${val("body_html")}</textarea>
 
-    <button class="btn" type="submit">${isEdit ? 'Save changes' : 'Save page'}</button>
+    <button class="btn" type="submit">${isEdit ? "Save changes" : "Save page"}</button>
     <a class="btn btn-secondary" href="/admin">Cancel</a>
   </form>
 </body>
 </html>`;
 }
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
-    const userAgent = request.headers.get('user-agent') || '';
-    const country = request.headers.get('cf-ipcountry') || 'XX';
+    const userAgent = request.headers.get("user-agent") || "";
+    const country = request.headers.get("cf-ipcountry") || "XX";
     const bot = isBot(userAgent) ? 1 : 0;
-    const ADMIN_TOKEN = env.ADMIN_TOKEN || 'change-this-token';
-    const GA_ID = env.GA_MEASUREMENT_ID || '';
-    const GSC_VERIFICATION = env.GSC_VERIFICATION || '';
-    const HERO_IMAGE_URL = env.HERO_IMAGE_URL || '';
-    const HERO_TEXT = env.HERO_TEXT || '';
+    const ADMIN_TOKEN = env.ADMIN_TOKEN;
+
+    if (path.startsWith("/admin") && !ADMIN_TOKEN) {
+      return new Response("Admin disabled: ADMIN_TOKEN not configured", {
+        status: 503,
+      });
+    }
+
+    // 4.3: verify same-site origin on all admin POSTs
+    if (path.startsWith("/admin") && request.method === "POST") {
+      const secFetchSite = request.headers.get("Sec-Fetch-Site");
+      const origin = request.headers.get("Origin");
+      if (
+        secFetchSite &&
+        secFetchSite !== "same-origin" &&
+        secFetchSite !== "none"
+      ) {
+        return new Response("Forbidden", { status: 403 });
+      }
+      if (!secFetchSite && origin && origin !== `https://${url.host}`) {
+        return new Response("Forbidden", { status: 403 });
+      }
+    }
+
+    const GA_ID = env.GA_MEASUREMENT_ID || "";
+    const GSC_VERIFICATION = env.GSC_VERIFICATION || "";
+    const HERO_IMAGE_URL = env.HERO_IMAGE_URL || "";
+    const HERO_TEXT = env.HERO_TEXT || "";
 
     // Admin — login page
-    if (path === '/admin/login') {
-      if (request.method === 'POST') {
+    if (path === "/admin/login") {
+      if (request.method === "POST") {
         const formData = await request.formData();
-        const token = formData.get('token')?.trim();
-        if (token !== ADMIN_TOKEN) {
-          return new Response(renderAdminLogin('Incorrect password. Please try again.'), {
-            status: 401,
-            headers: { 'Content-Type': 'text/html; charset=UTF-8' }
-          });
+        const token = formData.get("token")?.trim() ?? "";
+        if (!(await timingSafeEqual(token, ADMIN_TOKEN))) {
+          return new Response(
+            renderAdminLogin("Incorrect password. Please try again."),
+            {
+              status: 401,
+              headers: {
+                "Content-Type": "text/html; charset=UTF-8",
+                ...securityHeaders(true),
+              },
+            },
+          );
         }
+        const sessionToken = await createSessionToken(ADMIN_TOKEN);
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': '/admin',
-            'Set-Cookie': setSessionCookie(ADMIN_TOKEN)
-          }
+            Location: "/admin",
+            "Set-Cookie": setSessionCookie(sessionToken),
+          },
         });
       }
       // Already logged in → redirect
-      if (isAuthenticated(request, ADMIN_TOKEN)) {
-        return redirect('/admin');
+      if (await isAuthenticated(request, ADMIN_TOKEN)) {
+        return redirect("/admin");
       }
       return new Response(renderAdminLogin(), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
       });
     }
 
     // Admin — logout
-    if (path === '/admin/logout' && request.method === 'POST') {
+    if (path === "/admin/logout" && request.method === "POST") {
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': '/admin/login',
-          'Set-Cookie': setSessionCookie('', true)
-        }
+          Location: "/admin/login",
+          "Set-Cookie": setSessionCookie("", true),
+        },
       });
     }
 
     // Guard: all remaining /admin routes require session cookie
-    if (path.startsWith('/admin')) {
-      if (!isAuthenticated(request, ADMIN_TOKEN)) {
-        return redirect('/admin/login');
+    if (path.startsWith("/admin")) {
+      if (!(await isAuthenticated(request, ADMIN_TOKEN))) {
+        return redirect("/admin/login");
       }
     }
 
     // Admin — page list
-    if (path === '/admin') {
+    if (path === "/admin") {
       const { results } = await env.DB.prepare(
-        'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 1000'
+        "SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 1000",
       ).all();
       return new Response(renderAdminPageList(results), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
       });
     }
 
     // Admin — new page form
-    if (path === '/admin/new') {
+    if (path === "/admin/new") {
       return new Response(renderAdminForm(null), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
       });
     }
 
     // Admin — edit existing page
-    if (path === '/admin/edit') {
-      const slug = url.searchParams.get('slug');
-      if (!slug) return redirect('/admin');
-      const page = await env.DB.prepare('SELECT * FROM pages WHERE slug = ?').bind(slug).first();
-      if (!page) return new Response('Page not found', { status: 404 });
+    if (path === "/admin/edit") {
+      const slug = url.searchParams.get("slug");
+      if (!slug) return redirect("/admin");
+      const page = await env.DB.prepare("SELECT * FROM pages WHERE slug = ?")
+        .bind(slug)
+        .first();
+      if (!page) return new Response("Page not found", { status: 404 });
       return new Response(renderAdminForm(page), {
-        headers: { 'Content-Type': 'text/html; charset=UTF-8' }
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
       });
     }
 
     // Admin save (handles both create and update via INSERT OR REPLACE)
-    if (path === '/admin/save' && request.method === 'POST') {
+    if (path === "/admin/save" && request.method === "POST") {
       const formData = await request.formData();
-      const slug = formData.get('slug')?.trim().toLowerCase().replace(/\s+/g, '-');
-      const title = formData.get('title')?.trim();
-      const meta_description = formData.get('meta_description')?.trim();
-      const keyword = formData.get('keyword')?.trim();
-      const page_type = formData.get('page_type')?.trim();
-      const body_html = formData.get('body_html')?.trim();
-      const image_url = formData.get('image_url')?.trim() || null;
-      if (!slug || !title || !body_html) {
-        return new Response('Missing required fields', { status: 400 });
+      const slug = formData
+        .get("slug")
+        ?.trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+      const title = formData.get("title")?.trim();
+      const meta_description = formData.get("meta_description")?.trim();
+      const keyword = formData.get("keyword")?.trim();
+      const page_type = formData.get("page_type")?.trim();
+      const body_html = formData.get("body_html")?.trim();
+
+      // 3.3: strict slug validation — reject anything outside [a-z0-9-]
+      if (!slug || !/^[a-z0-9-]{1,200}$/.test(slug)) {
+        return new Response(
+          "Invalid slug: use only lowercase letters, numbers, and hyphens (max 200 chars)",
+          { status: 400 },
+        );
       }
+      if (!title || !body_html) {
+        return new Response("Missing required fields", { status: 400 });
+      }
+
+      // 3.2: strip the most dangerous constructs from body_html before storing
+      const safe_body_html = body_html
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+        .replace(/\bhref\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "")
+        .replace(/\bsrc\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "");
+
+      // 3.4: only allow https image URLs
+      let image_url = formData.get("image_url")?.trim() || null;
+      if (image_url) {
+        try {
+          if (new URL(image_url).protocol !== "https:") image_url = null;
+        } catch {
+          image_url = null;
+        }
+      }
+
       await env.DB.prepare(
-        'INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(slug, title, meta_description, keyword, page_type, body_html, image_url).run();
+        "INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+        .bind(
+          slug,
+          title,
+          meta_description,
+          keyword,
+          page_type,
+          safe_body_html,
+          image_url,
+        )
+        .run();
       return redirect(`/${slug}`);
     }
 
     // Sitemap
-    if (path === '/sitemap.xml') {
+    if (path === "/sitemap.xml") {
       const { results } = await env.DB.prepare(
-        'SELECT slug FROM pages ORDER BY id LIMIT 50000'
+        "SELECT slug FROM pages ORDER BY id LIMIT 50000",
       ).all();
       return new Response(renderSitemap(results, url.host), {
-        headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' }
+        headers: {
+          "Content-Type": "application/xml",
+          "Cache-Control": "public, max-age=3600",
+        },
       });
     }
 
     // robots.txt
-    if (path === '/robots.txt') {
+    if (path === "/robots.txt") {
       return new Response(
         `User-agent: *\nAllow: /\nSitemap: https://${url.host}/sitemap.xml\n`,
-        { headers: { 'Content-Type': 'text/plain' } }
+        { headers: { "Content-Type": "text/plain" } },
       );
     }
 
     // Homepage
-    if (path === '/' || path === '') {
+    if (path === "/" || path === "") {
       const { results } = await env.DB.prepare(
-        'SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 500'
+        "SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 500",
       ).all();
       ctx.waitUntil(
         env.DB.prepare(
-          'INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)'
-        ).bind('/', userAgent.slice(0, 200), country, bot).run()
+          "INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)",
+        )
+          .bind("/", userAgent.slice(0, 200), country, bot)
+          .run(),
       );
       return new Response(
-        renderHomepage(results, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID, HERO_IMAGE_URL, HERO_TEXT, GSC_VERIFICATION),
-        { headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'public, max-age=300' } }
+        renderHomepage(
+          results,
+          env.SITE_NAME,
+          env.SITE_DESCRIPTION,
+          GA_ID,
+          HERO_IMAGE_URL,
+          HERO_TEXT,
+          GSC_VERIFICATION,
+        ),
+        {
+          headers: {
+            "Content-Type": "text/html; charset=UTF-8",
+            "Cache-Control": "public, max-age=300",
+            ...securityHeaders(),
+          },
+        },
       );
     }
 
     // Individual pages
-    const slug = path.slice(1).replace(/\/$/, '');
-    if (!slug || slug.includes('..') || slug.includes('<')) {
-      return new Response('Not found', { status: 404 });
+    const slug = path.slice(1).replace(/\/$/, "");
+    if (!slug || slug.includes("..") || slug.includes("<")) {
+      return new Response("Not found", { status: 404 });
     }
-    const page = await env.DB.prepare(
-      'SELECT * FROM pages WHERE slug = ?'
-    ).bind(slug).first();
+    const page = await env.DB.prepare("SELECT * FROM pages WHERE slug = ?")
+      .bind(slug)
+      .first();
     if (!page) {
-      return new Response('Page not found', {
+      return new Response("Page not found", {
         status: 404,
-        headers: { 'Content-Type': 'text/plain' }
+        headers: { "Content-Type": "text/plain" },
       });
     }
     ctx.waitUntil(
       env.DB.prepare(
-        'INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)'
-      ).bind(slug, userAgent.slice(0, 200), country, bot).run()
+        "INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)",
+      )
+        .bind(slug, userAgent.slice(0, 200), country, bot)
+        .run(),
     );
     return new Response(
       renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID),
       {
         headers: {
-          'Content-Type': 'text/html; charset=UTF-8',
-          'Cache-Control': 'public, max-age=3600',
-          'X-Robots-Tag': 'index, follow'
-        }
-      }
+          "Content-Type": "text/html; charset=UTF-8",
+          "Cache-Control": "public, max-age=3600",
+          "X-Robots-Tag": "index, follow",
+          ...securityHeaders(),
+        },
+      },
     );
-  }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      env.DB.prepare(
+        "DELETE FROM analytics WHERE visited_at < datetime('now', '-90 days')",
+      ).run(),
+    );
+  },
 };
