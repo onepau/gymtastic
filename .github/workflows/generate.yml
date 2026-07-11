@@ -85,3 +85,8 @@ jobs:
         run: |
           cd worker
           npx wrangler d1 execute gymtastic-db --remote --file=../import-pages.sql
+
+      - name: Regenerate sitemaps
+        run: |
+          curl -s -o /dev/null -w "sitemap-en: %{http_code}\n" "https://gymtastic.cc/sitemap-en.xml"
+          curl -s -o /dev/null -w "sitemap:    %{http_code}\n" "https://gymtastic.cc/sitemap.xml"

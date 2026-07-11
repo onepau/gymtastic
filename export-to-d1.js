@@ -66,7 +66,7 @@ const lines = pages.map((page) => {
   const type = sqlStr(page.page_type);
   const keyword = sqlStr(page.keyword);
 
-  return `INSERT OR IGNORE INTO pages (slug, title, meta_description, body_html, page_type, keyword) VALUES (${slug}, ${title}, ${meta}, ${body}, ${type}, ${keyword});`;
+  return `INSERT OR IGNORE INTO pages (slug, title, meta_description, body_html, page_type, keyword, status, template, source, lang) VALUES (${slug}, ${title}, ${meta}, ${body}, ${type}, ${keyword}, 'draft', 'legacy', 'contentclaw', 'en');`;
 });
 
 fs.writeFileSync("import-pages.sql", lines.join("\n"));

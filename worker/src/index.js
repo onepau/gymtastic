@@ -337,11 +337,11 @@ function footerHtml(siteName, year) {
         <div class="footer-col">
           <h4>Disciplines</h4>
           <ul>
-            <li><a href="/#disciplines">Artistic</a></li>
-            <li><a href="/#disciplines">Rhythmic</a></li>
-            <li><a href="/#disciplines">Trampoline</a></li>
-            <li><a href="/#disciplines">Acrobatic</a></li>
-            <li><a href="/#disciplines">Parkour</a></li>
+            <li><a href="/discipline/artistic-gymnastics">Artistic</a></li>
+            <li><a href="/discipline/rhythmic-gymnastics">Rhythmic</a></li>
+            <li><a href="/discipline/trampoline">Trampoline</a></li>
+            <li><a href="/discipline/acrobatic-gymnastics">Acrobatic</a></li>
+            <li><a href="/discipline/parkour">Parkour</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -656,12 +656,12 @@ function renderHomepage(
         </div>
       </div>
       <div class="disc-scroll fade-in">
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#129336;</div><div class="disc-name">Artistic</div><div class="disc-sub">Men's &amp; Women's</div></a>
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#127992;</div><div class="disc-name">Rhythmic</div><div class="disc-sub">Hoops &middot; Ribbons &middot; Balls</div></a>
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#129385;</div><div class="disc-name">Trampoline</div><div class="disc-sub">DMT &middot; Synchronised</div></a>
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#129340;</div><div class="disc-name">Acrobatic</div><div class="disc-sub">Pairs &middot; Groups</div></a>
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#128168;</div><div class="disc-name">Aerobic</div><div class="disc-sub">Individual &middot; Mixed</div></a>
-        <a href="/#all-content" class="disc-tile"><div class="disc-icon">&#127939;</div><div class="disc-name">Parkour</div><div class="disc-sub">Speed &middot; Freestyle</div></a>
+        <a href="/discipline/artistic-gymnastics" class="disc-tile"><div class="disc-icon">&#129336;</div><div class="disc-name">Artistic</div><div class="disc-sub">Men's &amp; Women's</div></a>
+        <a href="/discipline/rhythmic-gymnastics" class="disc-tile"><div class="disc-icon">&#127992;</div><div class="disc-name">Rhythmic</div><div class="disc-sub">Hoops &middot; Ribbons &middot; Balls</div></a>
+        <a href="/discipline/trampoline" class="disc-tile"><div class="disc-icon">&#129385;</div><div class="disc-name">Trampoline</div><div class="disc-sub">DMT &middot; Synchronised</div></a>
+        <a href="/discipline/acrobatic-gymnastics" class="disc-tile"><div class="disc-icon">&#129340;</div><div class="disc-name">Acrobatic</div><div class="disc-sub">Pairs &middot; Groups</div></a>
+        <a href="/discipline/aerobic-gymnastics" class="disc-tile"><div class="disc-icon">&#128168;</div><div class="disc-name">Aerobic</div><div class="disc-sub">Individual &middot; Mixed</div></a>
+        <a href="/discipline/parkour" class="disc-tile"><div class="disc-icon">&#127939;</div><div class="disc-name">Parkour</div><div class="disc-sub">Speed &middot; Freestyle</div></a>
       </div>
     </div>
   </section>`;
@@ -1283,6 +1283,99 @@ function renderLegacyPage(page, siteName, gaId) {
 </html>`;
 }
 
+function renderDisciplinePage(discipline, pages, siteName, gaId) {
+  const year = new Date().getFullYear();
+  const displayName = discipline
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  const slug = discipline.replace(/ /g, "-");
+
+  const cardHtml =
+    pages.length === 0
+      ? `<p style="color:var(--muted);text-align:center;padding:60px 0">No articles yet for this discipline — check back soon.</p>`
+      : pages
+          .map(
+            (p, i) => `
+      <article class="card fade-in" style="transition-delay:${i * 0.05}s">
+        ${cardImg(p.image_url, p.title)}
+        <div class="card-body">
+          <div class="card-meta">${typeTag(p.page_type)}</div>
+          <h3 class="card-title">${escapeHtml(p.title)}</h3>
+          <p class="card-desc">${escapeHtml(p.meta_description || "")}</p>
+          <div class="card-footer-row">
+            <a href="/${escapeHtml(p.slug)}" class="card-link">Read more &rarr;</a>
+          </div>
+        </div>
+      </article>`,
+          )
+          .join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(displayName)} &mdash; ${escapeHtml(siteName)}</title>
+  <meta name="description" content="All ${escapeHtml(displayName.toLowerCase())} articles on ${escapeHtml(siteName)}: guides, scoring breakdowns, skill analysis, and more.">
+  <link rel="canonical" href="/discipline/${slug}">
+  ${gaSnippet(gaId)}
+  <style>
+    ${BASE_CSS}
+    .disc-header { padding: 80px 0 48px; border-bottom: 1px solid var(--border); }
+    .disc-breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .disc-breadcrumb a { color: var(--muted); text-decoration: none; }
+    .disc-breadcrumb a:hover { color: var(--gold); }
+    .disc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px,6vw,72px); line-height: 1; margin-bottom: 12px; }
+    .disc-count { font-size: 14px; color: var(--muted); }
+    .disc-grid { padding: 60px 0 80px; }
+    .articles-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+    @media (max-width: 1023px) { .articles-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 767px)  { .articles-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+    .card:hover .card-img img { transform: scale(1.05); }
+    .card-img { overflow: hidden; aspect-ratio: 16/9; }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+    .card-img-placeholder { display: flex; align-items: center; justify-content: center; font-size: 48px; }
+    .placeholder-icon { filter: opacity(0.3); }
+    .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .card-title { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 800; line-height: 1.3; margin-bottom: 10px; color: var(--text); }
+    .card-desc { font-size: 14px; color: var(--muted); flex: 1; }
+    .card-footer-row { display: flex; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .card-link { color: var(--gold); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .card-link:hover { color: #ffd43b; }
+  </style>
+</head>
+<body>
+  ${navHtml(siteName)}
+  <main>
+    <section class="disc-header">
+      <div class="container">
+        <div class="disc-breadcrumb">
+          <a href="/">Home</a> &rsaquo;
+          <a href="/#disciplines">Disciplines</a> &rsaquo;
+          ${escapeHtml(displayName)}
+        </div>
+        <h1 class="disc-title">${escapeHtml(displayName)}</h1>
+        <p class="disc-count">${pages.length} article${pages.length !== 1 ? "s" : ""}</p>
+      </div>
+    </section>
+    <section class="disc-grid">
+      <div class="container">
+        <div class="articles-grid">
+          ${cardHtml}
+        </div>
+      </div>
+    </section>
+  </main>
+  ${footerHtml(siteName, year)}
+  ${PAGE_JS}
+</body>
+</html>`;
+}
+
 function renderSitemapIndex(langs, host) {
   const maps = langs
     .map(
@@ -1863,27 +1956,80 @@ function renderAdminEventForm(event, error) {
 </html>`;
 }
 
-function renderAdminGenerate() {
+function renderAdminGenerate({ error, success, keyword } = {}) {
+  const banner = error
+    ? `<div class="flash flash-error">${escapeHtml(error)}</div>`
+    : success
+      ? `<div class="flash flash-ok">Workflow dispatched for <strong>${escapeHtml(keyword)}</strong>. It will appear in <a href="/admin/pages?status=draft">draft pages</a> once the run completes (~2&ndash;5 min).</div>`
+      : "";
+
+  const PAGE_TYPES = [
+    "auto",
+    "blog",
+    "hub",
+    "how-to",
+    "glossary",
+    "comparison",
+    "listicle",
+    "review",
+    "alternatives",
+    "landing",
+  ];
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Generate content</title>
-  <style>${adminStyles()}</style>
+  <style>
+    ${adminStyles()}
+    .flash { padding:0.75rem 1rem; border-radius:8px; margin-bottom:1.25rem; font-size:0.875rem; }
+    .flash-ok    { background:#ecfdf5; border:1px solid #6ee7b7; color:#065f46; }
+    .flash-error { background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; }
+    .flash a { color:inherit; font-weight:600; }
+    .hint { font-size:0.8rem; color:#6b7280; margin-top:0.25rem; }
+    .section-sep { border:none; border-top:1px solid #e5e7eb; margin:1.5rem 0; }
+  </style>
 </head>
 <body>
   <div class="nav">
     <h1>Generate content</h1>
     <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
   </div>
-  <p style="color:#6b7280;max-width:520px">
-    Content generation via GitHub Actions is configured in Guide 4.
-    Once wired up, this form will dispatch a workflow run to generate a new article as a draft.
+  ${banner}
+  <form method="POST" action="/admin/generate" style="max-width:560px">
+    <label for="keyword">Keyword / topic</label>
+    <input type="text" id="keyword" name="keyword" placeholder="e.g. Amanar vault explained" autocomplete="off">
+    <p class="hint">Leave blank if using a seeds file.</p>
+
+    <label for="page_type">Page type</label>
+    <select id="page_type" name="page_type">
+      ${PAGE_TYPES.map((t) => `<option value="${t}">${t}</option>`).join("")}
+    </select>
+
+    <hr class="section-sep">
+
+    <label for="expand">Expand into N variations <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+    <input type="number" id="expand" name="expand" min="2" max="50" placeholder="e.g. 8">
+    <p class="hint">Generates N long-tail keyword variants from the single keyword above.</p>
+
+    <label for="seeds_file">Seeds CSV path <span style="color:#9ca3af;font-weight:400">(optional — overrides keyword)</span></label>
+    <input type="text" id="seeds_file" name="seeds_file" placeholder="seeds.csv">
+
+    <label for="competitor">Competitor sitemap URL <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+    <input type="url" id="competitor" name="competitor" placeholder="https://example.com/sitemap.xml">
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn" type="submit">Dispatch workflow</button>
+      <a class="btn btn-secondary" href="/admin">Cancel</a>
+    </div>
+  </form>
+  <p style="margin-top:1.5rem;font-size:0.8rem;color:#9ca3af">
+    Requires <code>GITHUB_TOKEN</code> Worker secret with <code>workflow</code> scope.
+    Pages land as <strong>draft</strong> — review at
+    <a href="/admin/pages?status=draft" style="color:#6b7280">/admin/pages?status=draft</a>.
   </p>
-  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1.5rem;max-width:520px">
-    <p style="margin:0;font-size:0.875rem;color:#374151">Coming soon — see <code>files/04-github-actions.md</code> for setup instructions.</p>
-  </div>
 </body>
 </html>`;
 }
@@ -2150,8 +2296,86 @@ export default {
       return redirect(`/admin/pages`);
     }
 
-    // Admin — generate stub
+    // Admin — generate (GET form + POST dispatch)
     if (path === "/admin/generate") {
+      if (request.method === "POST") {
+        const formData = await request.formData();
+        const keyword = formData.get("keyword")?.trim() || "";
+        const page_type = formData.get("page_type")?.trim() || "auto";
+        const expand = formData.get("expand")?.trim() || "";
+        const seeds_file = formData.get("seeds_file")?.trim() || "";
+        const competitor = formData.get("competitor")?.trim() || "";
+
+        if (!keyword && !seeds_file) {
+          return new Response(
+            renderAdminGenerate({
+              error: "Enter a keyword or a seeds file path.",
+            }),
+            {
+              headers: {
+                "Content-Type": "text/html; charset=UTF-8",
+                ...securityHeaders(true),
+              },
+            },
+          );
+        }
+
+        const GITHUB_TOKEN = env.GITHUB_TOKEN;
+        if (!GITHUB_TOKEN) {
+          return new Response(
+            renderAdminGenerate({
+              error: "GITHUB_TOKEN secret is not configured on this Worker.",
+            }),
+            {
+              headers: {
+                "Content-Type": "text/html; charset=UTF-8",
+                ...securityHeaders(true),
+              },
+            },
+          );
+        }
+
+        let dispatchError = null;
+        try {
+          const resp = await fetch(
+            "https://api.github.com/repos/onepau/gymtastic/actions/workflows/generate.yml/dispatches",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${GITHUB_TOKEN}`,
+                Accept: "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "gymtastic-worker",
+              },
+              body: JSON.stringify({
+                ref: "main",
+                inputs: { keyword, page_type, expand, seeds_file, competitor },
+              }),
+            },
+          );
+          if (!resp.ok) {
+            const body = await resp.text();
+            dispatchError = `GitHub API ${resp.status}: ${body.slice(0, 200)}`;
+          }
+        } catch (err) {
+          dispatchError = `Network error: ${err.message}`;
+        }
+
+        const html = dispatchError
+          ? renderAdminGenerate({ error: dispatchError })
+          : renderAdminGenerate({
+              success: true,
+              keyword: keyword || seeds_file,
+            });
+        return new Response(html, {
+          headers: {
+            "Content-Type": "text/html; charset=UTF-8",
+            ...securityHeaders(true),
+          },
+        });
+      }
+
       return new Response(renderAdminGenerate(), {
         headers: {
           "Content-Type": "text/html; charset=UTF-8",
@@ -2393,6 +2617,39 @@ export default {
           HERO_TEXT,
           GSC_VERIFICATION,
         ),
+        {
+          headers: {
+            "Content-Type": "text/html; charset=UTF-8",
+            "Cache-Control": "public, max-age=300",
+            ...securityHeaders(),
+          },
+        },
+      );
+    }
+
+    // Discipline listing pages: /discipline/artistic-gymnastics
+    const disciplineMatch = path.match(/^\/discipline\/([a-z0-9-]+)$/);
+    if (disciplineMatch) {
+      const discipline = disciplineMatch[1].replace(/-/g, " ");
+      const VALID_DISCIPLINES = [
+        "artistic gymnastics",
+        "rhythmic gymnastics",
+        "trampoline",
+        "aerobic gymnastics",
+        "acrobatic gymnastics",
+        "parkour",
+        "paragymnastics",
+      ];
+      if (!VALID_DISCIPLINES.includes(discipline)) {
+        return new Response("Not found", { status: 404 });
+      }
+      const { results } = await env.DB.prepare(
+        "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE discipline = ? AND status = 'published' ORDER BY title",
+      )
+        .bind(discipline)
+        .all();
+      return new Response(
+        renderDisciplinePage(discipline, results, env.SITE_NAME, GA_ID),
         {
           headers: {
             "Content-Type": "text/html; charset=UTF-8",
