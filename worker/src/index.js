@@ -1675,7 +1675,7 @@ function renderAdminForm(page) {
     <label for="page_type">Page type</label>
     <select id="page_type" name="page_type">${typeOptions}</select>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:1rem">
       <div>
         <label for="status">Status</label>
         <select id="status" name="status">
@@ -1699,6 +1699,12 @@ function renderAdminForm(page) {
         <label for="source">Source</label>
         <select id="source" name="source">
           ${["", "contentclaw", "gymbot", "manual"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label for="discipline">Discipline</label>
+        <select id="discipline" name="discipline">
+          ${["", "artistic gymnastics", "rhythmic gymnastics", "trampoline", "aerobic gymnastics", "acrobatic gymnastics", "parkour", "paragymnastics"].map((d) => `<option value="${d}"${(page?.discipline || "") === d ? " selected" : ""}>${d || "—"}</option>`).join("")}
         </select>
       </div>
     </div>
@@ -2119,10 +2125,12 @@ export default {
         }
       }
 
+      const discipline = formData.get("discipline")?.trim() || "";
+
       await env.DB.prepare(
         `INSERT OR REPLACE INTO pages
-           (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, template, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+           (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, template, discipline, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
         .bind(
           slug,
@@ -2136,6 +2144,7 @@ export default {
           lang,
           source,
           template,
+          discipline,
         )
         .run();
       return redirect(`/admin/pages`);

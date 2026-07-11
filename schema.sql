@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS pages (
   source TEXT,
   lang TEXT NOT NULL DEFAULT 'en',
   template TEXT NOT NULL DEFAULT 'legacy',
+  discipline TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
