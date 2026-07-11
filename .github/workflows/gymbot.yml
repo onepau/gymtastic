@@ -1,0 +1,45 @@
+name: Gymbot — flagship article
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Article topic or query (e.g. '2026 World Artistic Championships vault final')"
+        required: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Gymbot dependencies
+        run: npm ci --prefix files
+
+      - name: Run Gymbot workflow
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd files
+          npx tsx src/workflow.ts "${{ inputs.topic }}" > ../gymbot-output.json
+          echo "--- Gymbot output (first 30 lines) ---"
+          head -30 ../gymbot-output.json
+
+      - name: Generate D1 SQL
+        run: node gymbot-to-d1.js
+
+      - name: Push draft to remote D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd worker
+          npx wrangler d1 execute gymtastic-db --remote --file=../import-gymbot.sql
+
+      - name: Warm sitemap cache
+        run: |
+          curl -s -o /dev/null -w "sitemap: %{http_code}\n" "https://gymtastic.cc/sitemap-en.xml"

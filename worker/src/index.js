@@ -1956,11 +1956,16 @@ function renderAdminEventForm(event, error) {
 </html>`;
 }
 
-function renderAdminGenerate({ error, success, keyword } = {}) {
+function renderAdminGenerate({ error, success, keyword, pipeline } = {}) {
   const banner = error
     ? `<div class="flash flash-error">${escapeHtml(error)}</div>`
     : success
-      ? `<div class="flash flash-ok">Workflow dispatched for <strong>${escapeHtml(keyword)}</strong>. It will appear in <a href="/admin/pages?status=draft">draft pages</a> once the run completes (~2&ndash;5 min).</div>`
+      ? `<div class="flash flash-ok">
+           <strong>${pipeline === "gymbot" ? "Gymbot" : "ContentClaw"}</strong> workflow dispatched
+           for <strong>${escapeHtml(keyword)}</strong>.
+           It will appear in <a href="/admin/pages?status=draft">draft pages</a>
+           once the run completes (${pipeline === "gymbot" ? "~3&ndash;8" : "~2&ndash;5"} min).
+         </div>`
       : "";
 
   const PAGE_TYPES = [
@@ -1990,6 +1995,13 @@ function renderAdminGenerate({ error, success, keyword } = {}) {
     .flash a { color:inherit; font-weight:600; }
     .hint { font-size:0.8rem; color:#6b7280; margin-top:0.25rem; }
     .section-sep { border:none; border-top:1px solid #e5e7eb; margin:1.5rem 0; }
+    .pipeline-tabs { display:flex; gap:0; margin-bottom:1.5rem; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; }
+    .pipeline-tab { flex:1; padding:0.6rem 1rem; font-size:0.875rem; font-weight:600; text-align:center;
+      background:#f9fafb; border:none; cursor:pointer; transition:background 0.15s; }
+    .pipeline-tab.active { background:#111827; color:#fff; }
+    .pipeline-tab:first-child { border-right:1px solid #e5e7eb; }
+    .pipeline-desc { font-size:0.8rem; color:#6b7280; margin-bottom:1.25rem; padding:0.6rem 0.75rem;
+      background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb; }
   </style>
 </head>
 <body>
@@ -1998,38 +2010,78 @@ function renderAdminGenerate({ error, success, keyword } = {}) {
     <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
   </div>
   ${banner}
-  <form method="POST" action="/admin/generate" style="max-width:560px">
-    <label for="keyword">Keyword / topic</label>
-    <input type="text" id="keyword" name="keyword" placeholder="e.g. Amanar vault explained" autocomplete="off">
-    <p class="hint">Leave blank if using a seeds file.</p>
-
-    <label for="page_type">Page type</label>
-    <select id="page_type" name="page_type">
-      ${PAGE_TYPES.map((t) => `<option value="${t}">${t}</option>`).join("")}
-    </select>
-
-    <hr class="section-sep">
-
-    <label for="expand">Expand into N variations <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
-    <input type="number" id="expand" name="expand" min="2" max="50" placeholder="e.g. 8">
-    <p class="hint">Generates N long-tail keyword variants from the single keyword above.</p>
-
-    <label for="seeds_file">Seeds CSV path <span style="color:#9ca3af;font-weight:400">(optional — overrides keyword)</span></label>
-    <input type="text" id="seeds_file" name="seeds_file" placeholder="seeds.csv">
-
-    <label for="competitor">Competitor sitemap URL <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
-    <input type="url" id="competitor" name="competitor" placeholder="https://example.com/sitemap.xml">
-
-    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
-      <button class="btn" type="submit">Dispatch workflow</button>
-      <a class="btn btn-secondary" href="/admin">Cancel</a>
+  <div style="max-width:560px">
+    <div class="pipeline-tabs">
+      <button type="button" class="pipeline-tab active" id="tab-contentclaw" onclick="setPipeline('contentclaw')">ContentClaw</button>
+      <button type="button" class="pipeline-tab" id="tab-gymbot" onclick="setPipeline('gymbot')">Gymbot</button>
     </div>
-  </form>
-  <p style="margin-top:1.5rem;font-size:0.8rem;color:#9ca3af">
-    Requires <code>GITHUB_TOKEN</code> Worker secret with <code>workflow</code> scope.
-    Pages land as <strong>draft</strong> — review at
-    <a href="/admin/pages?status=draft" style="color:#6b7280">/admin/pages?status=draft</a>.
-  </p>
+
+    <div id="desc-contentclaw" class="pipeline-desc">
+      Bulk SEO content from a keyword or seeds CSV. Generates <strong>draft</strong> pages with <code>template=legacy</code>.
+      Best for glossary, listicle, how-to, and long-tail blog posts.
+    </div>
+    <div id="desc-gymbot" class="pipeline-desc" style="display:none">
+      Agentic flagship article — orchestrator → competition/athlete research → writer → editorial QA.
+      Generates a single <strong>draft</strong> page with <code>template=flagship</code>.
+      Best for event coverage and athlete profiles.
+    </div>
+
+    <form method="POST" action="/admin/generate">
+      <input type="hidden" name="pipeline" id="pipeline-input" value="contentclaw">
+
+      <!-- Gymbot -->
+      <div id="section-gymbot" style="display:none">
+        <label for="topic">Topic / query</label>
+        <input type="text" id="topic" name="topic" placeholder="e.g. 2026 World Artistic Championships vault final" autocomplete="off">
+        <p class="hint">Describe what you want covered — event, athlete, or angle.</p>
+      </div>
+
+      <!-- ContentClaw -->
+      <div id="section-contentclaw">
+        <label for="keyword">Keyword / topic</label>
+        <input type="text" id="keyword" name="keyword" placeholder="e.g. Amanar vault explained" autocomplete="off">
+        <p class="hint">Leave blank if using a seeds file.</p>
+
+        <label for="page_type">Page type</label>
+        <select id="page_type" name="page_type">
+          ${PAGE_TYPES.map((t) => `<option value="${t}">${t}</option>`).join("")}
+        </select>
+
+        <hr class="section-sep">
+
+        <label for="expand">Expand into N variations <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+        <input type="number" id="expand" name="expand" min="2" max="50" placeholder="e.g. 8">
+        <p class="hint">Generates N long-tail variants from the keyword above.</p>
+
+        <label for="seeds_file">Seeds CSV path <span style="color:#9ca3af;font-weight:400">(optional — overrides keyword)</span></label>
+        <input type="text" id="seeds_file" name="seeds_file" placeholder="seeds.csv">
+
+        <label for="competitor">Competitor sitemap URL <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+        <input type="url" id="competitor" name="competitor" placeholder="https://example.com/sitemap.xml">
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+        <button class="btn" type="submit">Dispatch workflow</button>
+        <a class="btn btn-secondary" href="/admin">Cancel</a>
+      </div>
+    </form>
+    <p style="margin-top:1.5rem;font-size:0.8rem;color:#9ca3af">
+      Requires <code>GITHUB_TOKEN</code> Worker secret with <code>workflow</code> scope.
+      Pages land as <strong>draft</strong> — review at
+      <a href="/admin/pages?status=draft" style="color:#6b7280">/admin/pages?status=draft</a>.
+    </p>
+  </div>
+  <script>
+    function setPipeline(p) {
+      document.getElementById('pipeline-input').value = p;
+      document.getElementById('section-contentclaw').style.display = p === 'contentclaw' ? '' : 'none';
+      document.getElementById('section-gymbot').style.display = p === 'gymbot' ? '' : 'none';
+      document.getElementById('desc-contentclaw').style.display = p === 'contentclaw' ? '' : 'none';
+      document.getElementById('desc-gymbot').style.display = p === 'gymbot' ? '' : 'none';
+      document.getElementById('tab-contentclaw').classList.toggle('active', p === 'contentclaw');
+      document.getElementById('tab-gymbot').classList.toggle('active', p === 'gymbot');
+    }
+  </script>
 </body>
 </html>`;
 }
@@ -2300,25 +2352,8 @@ export default {
     if (path === "/admin/generate") {
       if (request.method === "POST") {
         const formData = await request.formData();
-        const keyword = formData.get("keyword")?.trim() || "";
-        const page_type = formData.get("page_type")?.trim() || "auto";
-        const expand = formData.get("expand")?.trim() || "";
-        const seeds_file = formData.get("seeds_file")?.trim() || "";
-        const competitor = formData.get("competitor")?.trim() || "";
-
-        if (!keyword && !seeds_file) {
-          return new Response(
-            renderAdminGenerate({
-              error: "Enter a keyword or a seeds file path.",
-            }),
-            {
-              headers: {
-                "Content-Type": "text/html; charset=UTF-8",
-                ...securityHeaders(true),
-              },
-            },
-          );
-        }
+        const pipeline = formData.get("pipeline")?.trim() || "contentclaw";
+        const isGymbot = pipeline === "gymbot";
 
         const GITHUB_TOKEN = env.GITHUB_TOKEN;
         if (!GITHUB_TOKEN) {
@@ -2335,10 +2370,55 @@ export default {
           );
         }
 
+        let workflow, inputs, label;
+
+        if (isGymbot) {
+          const topic = formData.get("topic")?.trim() || "";
+          if (!topic) {
+            return new Response(
+              renderAdminGenerate({ error: "Enter a topic for Gymbot." }),
+              {
+                headers: {
+                  "Content-Type": "text/html; charset=UTF-8",
+                  ...securityHeaders(true),
+                },
+              },
+            );
+          }
+          workflow = "gymbot.yml";
+          inputs = { topic };
+          label = topic;
+        } else {
+          const keyword = formData.get("keyword")?.trim() || "";
+          const seeds_file = formData.get("seeds_file")?.trim() || "";
+          if (!keyword && !seeds_file) {
+            return new Response(
+              renderAdminGenerate({
+                error: "Enter a keyword or a seeds file path.",
+              }),
+              {
+                headers: {
+                  "Content-Type": "text/html; charset=UTF-8",
+                  ...securityHeaders(true),
+                },
+              },
+            );
+          }
+          workflow = "generate.yml";
+          inputs = {
+            keyword,
+            page_type: formData.get("page_type")?.trim() || "auto",
+            expand: formData.get("expand")?.trim() || "",
+            seeds_file,
+            competitor: formData.get("competitor")?.trim() || "",
+          };
+          label = keyword || seeds_file;
+        }
+
         let dispatchError = null;
         try {
           const resp = await fetch(
-            "https://api.github.com/repos/onepau/gymtastic/actions/workflows/generate.yml/dispatches",
+            `https://api.github.com/repos/onepau/gymtastic/actions/workflows/${workflow}/dispatches`,
             {
               method: "POST",
               headers: {
@@ -2348,10 +2428,7 @@ export default {
                 "X-GitHub-Api-Version": "2022-11-28",
                 "User-Agent": "gymtastic-worker",
               },
-              body: JSON.stringify({
-                ref: "main",
-                inputs: { keyword, page_type, expand, seeds_file, competitor },
-              }),
+              body: JSON.stringify({ ref: "main", inputs }),
             },
           );
           if (!resp.ok) {
@@ -2364,10 +2441,7 @@ export default {
 
         const html = dispatchError
           ? renderAdminGenerate({ error: dispatchError })
-          : renderAdminGenerate({
-              success: true,
-              keyword: keyword || seeds_file,
-            });
+          : renderAdminGenerate({ success: true, keyword: label, pipeline });
         return new Response(html, {
           headers: {
             "Content-Type": "text/html; charset=UTF-8",
