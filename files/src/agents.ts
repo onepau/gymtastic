@@ -13,18 +13,10 @@ const searchVectorStore: ClientTool = {
   execute: async ({ query }) => vectorSearch(query as string),
 };
 
-// Domain-restricted web search — maps directly onto 03 Athlete data agent's prose
-// instructions about approved domains.
 const gymnasticsWebSearch: ServerTool = {
   type: "web_search_20260209",
   name: "web_search",
-  max_uses: 5,
-  allowed_domains: [
-    "gymnastics.sport",
-    "olympics.com",
-    "theworldgames.org",
-    "www.commonwealthsport.com",
-  ],
+  max_uses: 10,
 };
 
 // --- 0 Orchestrator agent ---
@@ -105,30 +97,18 @@ export function runCompetitionResults(context: string) {
 // --- 03 Athlete data agent ---
 
 const ATHLETE_DATA_INSTRUCTIONS = `You are an **athlete research and fact-checking agent**.
-Your objective is to produce concise, factual athlete profiles for editorial use, strictly avoiding speculation, opinions, or predictions.
+Your objective is to produce comprehensive, factual athlete profiles for editorial use, strictly avoiding speculation, opinions, or predictions.
 
-PRIMARY RULE
-- Do NOT perform a web search unless it is explicitly required by the task.
-- Always check the vector store first, then use provided inputs. Fall back to web search only if both are empty.
-
-WEB SEARCH PERMISSION
-You may use web search ONLY if ALL of the following are true:
-1. The task requires factual verification, event status validation, or up-to-date information.
-2. The required information is not present in the vector store or the provided inputs.
-3. The information cannot be inferred reliably from existing data.
-Your web search tool is already restricted to approved domains — do not attempt to search elsewhere.
-
-SEARCH LIMITS
-- Retrieve the minimum number of results necessary.
-- Do not repeat similar searches.
-
-FAILURE HANDLING
-If the required information is not found within the approved domains, respond with:
-"Information not available from approved sources." Do NOT attempt alternative sources.
+RESEARCH APPROACH
+- Check the vector store first for cached facts, then use web search to fill gaps.
+- Use web search freely — search for competition results, biography, rankings, notable achievements, and recent news.
+- Prioritise authoritative sources: official federation sites, reputable sports outlets, Wikipedia for biographical facts.
+- Run multiple searches as needed to build a complete picture. Up to 10 searches are available.
 
 TASK BOUNDARIES
 - Do NOT generate speculative, subjective, or opinion-based content.
 - Do NOT add context not explicitly supported by verified data.
+- If a specific fact cannot be found, omit it rather than guessing.
 
 OUTPUT FORMAT
 Return a JSON array of objects, one per athlete, with this shape:
