@@ -1,15 +1,10 @@
-import {
-  classifyArticleRequest,
-  classifyEventType,
-  classifyAthleteRelated,
-} from "./classify";
+import { classifyEventType, classifyAthleteRelated } from "./classify";
 import {
   runOrchestrator,
   runCompetitionResults,
   runAthleteData,
   runArticleWriter,
   runEditorialQA,
-  runFallback,
 } from "./agents";
 import { vectorUpsert } from "./vectorize";
 
@@ -17,73 +12,74 @@ export interface WorkflowInput {
   input_as_text: string;
 }
 
+function parseArticleJson(raw: string) {
+  const cleaned = raw
+    .replace(/^```[\w]*\n?/m, "")
+    .replace(/\n?```$/m, "")
+    .trim();
+  return JSON.parse(cleaned) as {
+    title?: string;
+    meta_description?: string;
+    body_html?: string;
+  };
+}
+
 export async function runWorkflow(workflow: WorkflowInput) {
   const input = workflow.input_as_text;
 
-  const { category: articleCheck } = await classifyArticleRequest(input);
-  if (articleCheck !== "is_article_request") {
-    return { output_text: await runFallback(input) };
-  }
-
   const orchestratorContext = await runOrchestrator(input);
-
   const { category: eventType } = await classifyEventType(input);
+
+  let researchContext: string;
 
   if (eventType === "Specific event") {
     const resultsOutput = await runCompetitionResults(
       `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
     );
     vectorUpsert("competition", input, resultsOutput).catch(() => {});
-
-    // NOTE: the original workflow also ran a 05 Image embedding step here before
-    // article writing. Deliberately omitted — see MIGRATION_NOTES.md.
-    const articleRaw = await runArticleWriter(
-      `${input}\n\nCompetition results:\n${resultsOutput}`,
-    );
-
-    // Article writer is instructed to return JSON — parse it so downstream
-    // steps (gymbot-to-d1.js, GitHub Actions) can insert structured fields.
-    let article: {
-      title?: string;
-      meta_description?: string;
-      body_html?: string;
-    } = {};
-    try {
-      const cleaned = articleRaw
-        .replace(/^```[\w]*\n?/m, "")
-        .replace(/\n?```$/m, "")
-        .trim();
-      article = JSON.parse(cleaned);
-    } catch {
-      return { output_text: articleRaw };
+    researchContext = `Competition results:\n${resultsOutput}`;
+  } else {
+    const { category: athleteCheck } = await classifyAthleteRelated(input);
+    if (athleteCheck === "athlete_related") {
+      const athleteOutput = await runAthleteData(
+        `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
+      );
+      vectorUpsert("athlete", input, athleteOutput).catch(() => {});
+      researchContext = `Athlete data:\n${athleteOutput}`;
+    } else {
+      researchContext = `Orchestrator context:\n${orchestratorContext}`;
     }
-
-    const qaOutput = await runEditorialQA(article.body_html ?? articleRaw);
-    const approved = /\bApproved\b/i.test(qaOutput);
-
-    return {
-      output_text: qaOutput,
-      ...(approved && article.title
-        ? {
-            title: article.title,
-            meta_description: article.meta_description ?? "",
-            body_html: article.body_html ?? "",
-            qa_approved: true,
-          }
-        : {}),
-    };
   }
 
-  const { category: athleteCheck } = await classifyAthleteRelated(input);
-  if (athleteCheck === "athlete_related") {
-    const athleteOutput = await runAthleteData(
-      `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
-    );
-    vectorUpsert("athlete", input, athleteOutput).catch(() => {});
-    return { output_text: athleteOutput };
+  // NOTE: the original workflow also ran a 05 Image embedding step here before
+  // article writing. Deliberately omitted — see MIGRATION_NOTES.md.
+  const articleRaw = await runArticleWriter(`${input}\n\n${researchContext}`);
+
+  let article: {
+    title?: string;
+    meta_description?: string;
+    body_html?: string;
+  } = {};
+  try {
+    article = parseArticleJson(articleRaw);
+  } catch {
+    return { output_text: articleRaw };
   }
 
-  return { output_text: await runFallback(input) };
+  const qaOutput = await runEditorialQA(article.body_html ?? articleRaw);
+  const approved = /\bApproved\b/i.test(qaOutput);
+
+  return {
+    output_text: qaOutput,
+    ...(approved && article.title
+      ? {
+          title: article.title,
+          meta_description: article.meta_description ?? "",
+          body_html: article.body_html ?? "",
+          qa_approved: true,
+        }
+      : {}),
+  };
 }
 
 // Local test entrypoint: `npm start "your query here"`
