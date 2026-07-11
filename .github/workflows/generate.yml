@@ -1,0 +1,56 @@
+name: Generate content
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: "Target keyword / topic"
+        required: true
+      page_type:
+        description: "Page type"
+        required: true
+        default: blog
+        type: choice
+        options:
+          [blog, hub, how-to, glossary, comparison, listicle, review, landing]
+      lang:
+        description: "Language (en only — translate separately)"
+        required: true
+        default: en
+      seeds_file:
+        description: "Path to seeds CSV (leave blank to use keyword above)"
+        required: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install ContentClaw dependencies
+        run: npm install
+        working-directory: .
+
+      - name: Run ContentClaw generation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # ContentClaw runs as a local server; invoke CLI or script here.
+          # Replace with your actual ContentClaw invocation:
+          # node contentclaw-cli.js --keyword "${{ inputs.keyword }}" --type "${{ inputs.page_type }}"
+          echo "TODO: wire ContentClaw CLI invocation"
+
+      - name: Export to D1 import SQL
+        run: node export-to-d1.js
+
+      - name: Push to remote D1 (draft status)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd worker
+          npx wrangler d1 execute gymtastic-db --remote --file=../import-pages.sql

@@ -1096,8 +1096,22 @@ function renderHomepage(
 </html>`;
 }
 
-// ── Individual article page ───────────────────────────────────────────────────
-function renderPage(page, siteName, siteDesc, gaId) {
+function hreflangLinks(slug, siblings, host) {
+  if (!siblings || siblings.length <= 1) return "";
+  const base = slug.replace(/^[a-z]{2}\//, "");
+  const enSlug = siblings.find((s) => !s.slug.includes("/"))?.slug || base;
+  const lines = siblings.map((s) => {
+    const l = s.slug.includes("/") ? s.slug.split("/")[0] : "en";
+    return `  <link rel="alternate" hreflang="${l}" href="https://${host}/${escapeHtml(s.slug)}">`;
+  });
+  lines.push(
+    `  <link rel="alternate" hreflang="x-default" href="https://${host}/${escapeHtml(enSlug)}">`,
+  );
+  return lines.join("\n");
+}
+
+// ── Individual article page (flagship template) ───────────────────────────────
+function renderPage(page, siteName, siteDesc, gaId, siblings, host) {
   const lang = langFromSlug(page.slug);
   const year = new Date().getFullYear();
   const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, "gymtastic.cc")}</script>`;
@@ -1117,7 +1131,8 @@ function renderPage(page, siteName, siteDesc, gaId) {
   <meta property="og:description" content="${escapeHtml(page.meta_description || "")}">
   <meta property="og:type" content="article">
   ${page.image_url ? `<meta property="og:image" content="${escapeHtml(page.image_url)}">` : ""}
-  <link rel="canonical" href="/${escapeHtml(page.slug)}">
+  <link rel="canonical" href="https://${host || "gymtastic.cc"}/${escapeHtml(page.slug)}">
+  ${hreflangLinks(page.slug, siblings, host || "gymtastic.cc")}
   ${schemaBlock}
   ${gaSnippet(gaId)}
   <style>
@@ -1217,17 +1232,101 @@ function renderPage(page, siteName, siteDesc, gaId) {
 </html>`;
 }
 
-function renderSitemap(pages, host) {
-  const urls = pages
+// ── Individual article page (legacy template) ─────────────────────────────────
+function renderLegacyPage(page, siteName, gaId, siblings, host) {
+  const lang = langFromSlug(page.slug);
+  const year = new Date().getFullYear();
+  const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, "gymtastic.cc")}</script>`;
+  const h = host || "gymtastic.cc";
+  return `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(page.title)} | ${escapeHtml(siteName)}</title>
+  <meta name="description" content="${escapeHtml(page.meta_description || "")}">
+  <meta property="og:title" content="${escapeHtml(page.title)}">
+  <meta property="og:description" content="${escapeHtml(page.meta_description || "")}">
+  <meta property="og:type" content="article">
+  <link rel="canonical" href="https://${h}/${escapeHtml(page.slug)}">
+  ${hreflangLinks(page.slug, siblings, h)}
+  ${schemaBlock}
+  ${gaSnippet(gaId)}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #fff; color: #111827; line-height: 1.7; }
+    a { color: #1d4ed8; }
+    .site-header { border-bottom: 1px solid #e5e7eb; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+    .site-header a.logo { font-weight: 800; font-size: 1.1rem; color: #111827; text-decoration: none; letter-spacing: -0.02em; }
+    .site-header nav { margin-left: auto; font-size: 0.85rem; display: flex; gap: 1.25rem; }
+    .site-header nav a { color: #6b7280; text-decoration: none; }
+    .site-header nav a:hover { color: #111827; }
+    .article-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 72px; }
+    .breadcrumb { font-size: 0.8rem; color: #9ca3af; margin-bottom: 1.5rem; }
+    .breadcrumb a { color: #9ca3af; text-decoration: none; }
+    h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1.5rem; color: #111827; }
+    .article-body p { margin-bottom: 1.25rem; font-size: 1rem; color: #374151; }
+    .article-body h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.75rem; color: #111827; border-top: 1px solid #e5e7eb; padding-top: 2rem; }
+    .article-body h3 { font-size: 1.15rem; font-weight: 700; margin: 1.75rem 0 0.5rem; color: #111827; }
+    .article-body ul, .article-body ol { padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .article-body li { margin-bottom: 0.35rem; color: #374151; }
+    .article-body blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; margin: 1.5rem 0; color: #6b7280; font-style: italic; }
+    .article-body table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; font-size: 0.9rem; }
+    .article-body th, .article-body td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
+    .article-body th { background: #f9fafb; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .article-body a { color: #1d4ed8; }
+    .article-body strong { font-weight: 700; }
+    .article-body code { background: #f3f4f6; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.875em; }
+    .site-footer { border-top: 1px solid #e5e7eb; padding: 1.5rem; text-align: center; font-size: 0.8rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">${escapeHtml(siteName)}</a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/sitemap.xml">Sitemap</a>
+    </nav>
+  </header>
+  <div class="article-wrap">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a> &rsaquo; <span>${escapeHtml(page.title)}</span>
+    </nav>
+    <h1>${escapeHtml(page.title)}</h1>
+    <div class="article-body">${page.body_html || ""}</div>
+  </div>
+  <footer class="site-footer">&copy; ${year} ${escapeHtml(siteName)}</footer>
+</body>
+</html>`;
+}
+
+function renderSitemapIndex(langs, host) {
+  const maps = langs
     .map(
-      (p) =>
-        `<url><loc>https://${host}/${escapeHtml(p.slug)}</loc><changefreq>monthly</changefreq></url>`,
+      (l) => `  <sitemap><loc>https://${host}/sitemap-${l}.xml</loc></sitemap>`,
     )
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${maps}
+</sitemapindex>`;
+}
+
+function renderLangSitemap(pages, lang, host) {
+  const urls = pages
+    .filter((p) => langFromSlug(p.slug) === lang)
+    .map(
+      (p) =>
+        `  <url><loc>https://${host}/${escapeHtml(p.slug)}</loc><changefreq>monthly</changefreq></url>`,
+    )
+    .join("\n");
+  const home =
+    lang === "en"
+      ? `  <url><loc>https://${host}/</loc><changefreq>weekly</changefreq></url>\n`
+      : "";
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://${host}/</loc><changefreq>weekly</changefreq></url>
-  ${urls}
+${home}${urls}
 </urlset>`;
 }
 
@@ -1452,6 +1551,7 @@ function renderAdminDashboard(counts, eventsTotal) {
     <a class="btn btn-secondary" href="/admin/new">+ Add page</a>
     <a class="btn btn-secondary" href="/admin/events">Events</a>
     <a class="btn btn-secondary" href="/admin/generate">Generate content</a>
+    <a class="btn btn-secondary" href="/admin/translation-log">Translation costs</a>
   </div>
 </body>
 </html>`;
@@ -1593,11 +1693,18 @@ function renderAdminForm(page) {
     <label for="page_type">Page type</label>
     <select id="page_type" name="page_type">${typeOptions}</select>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem">
       <div>
         <label for="status">Status</label>
         <select id="status" name="status">
           ${["draft", "published", "hidden", "deleted"].map((s) => `<option value="${s}"${(page?.status || "draft") === s ? " selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label for="template">Template</label>
+        <select id="template" name="template">
+          <option value="legacy"${(page?.template || "legacy") === "legacy" ? " selected" : ""}>legacy</option>
+          <option value="flagship"${page?.template === "flagship" ? " selected" : ""}>flagship</option>
         </select>
       </div>
       <div>
@@ -1609,7 +1716,7 @@ function renderAdminForm(page) {
       <div>
         <label for="source">Source</label>
         <select id="source" name="source">
-          ${["", "contentclaw", "gymbot", "manual"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
+          ${["", "contentclaw", "gymbot", "manual", "haiku-translation"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
         </select>
       </div>
     </div>
@@ -1617,8 +1724,11 @@ function renderAdminForm(page) {
     <label for="body_html">Content (HTML)</label>
     <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>">${val("body_html")}</textarea>
 
-    <button class="btn" type="submit">${isEdit ? "Save changes" : "Save page"}</button>
-    <a class="btn btn-secondary" href="/admin/pages">Cancel</a>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
+      <button class="btn" type="submit">${isEdit ? "Save changes" : "Save page"}</button>
+      <a class="btn btn-secondary" href="/admin/pages">Cancel</a>
+      ${isEdit && (page?.lang === "en" || !page?.lang) ? `<a class="btn btn-secondary" href="/admin/translate?slug=${encodeURIComponent(page.slug)}" style="margin-left:auto">Translate with Haiku →</a>` : ""}
+    </div>
   </form>
 </body>
 </html>`;
@@ -1762,6 +1872,102 @@ function renderAdminEventForm(event, error) {
       <a class="btn btn-secondary" href="/admin/events">Cancel</a>
     </div>
   </form>
+</body>
+</html>`;
+}
+
+const LANG_NAMES = {
+  de: "German",
+  fr: "French",
+  es: "Spanish",
+  pt: "Portuguese",
+  it: "Italian",
+  nl: "Dutch",
+  ja: "Japanese",
+  zh: "Chinese",
+};
+
+function renderAdminTranslate(page, error) {
+  const langOptions = Object.entries(LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`)
+    .join("");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translate page — Admin</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Translate page</h1>
+    <a class="btn btn-ghost" href="/admin/edit?slug=${encodeURIComponent(page.slug)}" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Edit page</a>
+  </div>
+  ${error ? `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:1rem;margin-bottom:1rem">${escapeHtml(error)}</div>` : ""}
+  <p style="color:#6b7280;font-size:0.875rem;margin-bottom:1.5rem">
+    Translates <strong>${escapeHtml(page.title)}</strong> using Claude Haiku.
+    The result is saved as a <code>draft</code> with <code>template = legacy</code> — review before publishing.
+    Token usage is logged so you can track costs before scaling to multiple languages.
+  </p>
+  <form method="POST" action="/admin/translate">
+    <input type="hidden" name="slug" value="${escapeHtml(page.slug)}">
+    <label for="target_lang">Target language</label>
+    <select id="target_lang" name="target_lang" style="max-width:280px">${langOptions}</select>
+    <p class="hint">Estimated cost: ~$0.005–0.015 per page at Haiku rates ($1/1M input · $5/1M output).</p>
+    <div style="display:flex;gap:0.75rem;margin-top:1rem">
+      <button class="btn" type="submit">Translate with Haiku</button>
+      <a class="btn btn-secondary" href="/admin/edit?slug=${encodeURIComponent(page.slug)}">Cancel</a>
+    </div>
+  </form>
+  <hr style="margin:2rem 0;border:none;border-top:1px solid #e5e7eb">
+  <h2 style="font-size:1rem;margin-bottom:0.75rem">Translation log</h2>
+  <p style="font-size:0.8rem;color:#6b7280"><a href="/admin/translation-log">View full translation cost log →</a></p>
+</body>
+</html>`;
+}
+
+function renderAdminTranslationLog(rows) {
+  const totalCost = rows.reduce((s, r) => s + (r.cost_usd || 0), 0);
+  const tableRows = rows
+    .map(
+      (r) => `<tr>
+      <td style="font-size:0.8rem">${escapeHtml(r.created_at?.slice(0, 16) || "")}</td>
+      <td><a href="/${escapeHtml(r.source_slug)}">${escapeHtml(r.source_slug)}</a></td>
+      <td><a href="/${escapeHtml(r.target_slug)}">${escapeHtml(r.target_slug)}</a></td>
+      <td>${escapeHtml(r.target_lang)}</td>
+      <td style="text-align:right">${(r.input_tokens || 0).toLocaleString()}</td>
+      <td style="text-align:right">${(r.output_tokens || 0).toLocaleString()}</td>
+      <td style="text-align:right">$${(r.cost_usd || 0).toFixed(5)}</td>
+    </tr>`,
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translation log — Admin</title>
+  <style>${adminStyles()} table { font-size:0.85rem; }</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Translation cost log</h1>
+    <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
+  </div>
+  <p style="color:#6b7280;font-size:0.875rem;margin-bottom:1rem">
+    Total spend: <strong>$${totalCost.toFixed(4)}</strong> across ${rows.length} translation${rows.length === 1 ? "" : "s"}.
+    Haiku rates: $1.00/1M input · $5.00/1M output.
+  </p>
+  ${
+    rows.length
+      ? `<table>
+    <thead><tr><th>Date</th><th>Source</th><th>Target</th><th>Lang</th><th style="text-align:right">In tokens</th><th style="text-align:right">Out tokens</th><th style="text-align:right">Cost</th></tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>`
+      : `<p style="color:#6b7280">No translations yet.</p>`
+  }
 </body>
 </html>`;
 }
@@ -2000,6 +2206,8 @@ export default {
         : "draft";
       const lang = formData.get("lang")?.trim() || "en";
       const source = formData.get("source")?.trim() || null;
+      const template =
+        formData.get("template") === "flagship" ? "flagship" : "legacy";
 
       if (!slug || !/^(?:[a-z]{2}\/)?[a-z0-9-]{1,200}$/.test(slug)) {
         return new Response(
@@ -2028,8 +2236,8 @@ export default {
 
       await env.DB.prepare(
         `INSERT OR REPLACE INTO pages
-           (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+           (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, template, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
         .bind(
           slug,
@@ -2042,6 +2250,7 @@ export default {
           status,
           lang,
           source,
+          template,
         )
         .run();
       return redirect(`/admin/pages`);
@@ -2055,6 +2264,192 @@ export default {
           ...securityHeaders(true),
         },
       });
+    }
+
+    // Admin — translation cost log
+    if (path === "/admin/translation-log") {
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM translation_log ORDER BY created_at DESC LIMIT 500",
+      ).all();
+      return new Response(renderAdminTranslationLog(results), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
+    }
+
+    // Admin — translate page
+    if (path === "/admin/translate") {
+      const slugParam = url.searchParams.get("slug");
+
+      if (request.method !== "POST") {
+        if (!slugParam) return redirect("/admin/pages");
+        const page = await env.DB.prepare(
+          "SELECT slug, title FROM pages WHERE slug = ?",
+        )
+          .bind(slugParam)
+          .first();
+        if (!page) return new Response("Page not found", { status: 404 });
+        return new Response(renderAdminTranslate(page), {
+          headers: {
+            "Content-Type": "text/html; charset=UTF-8",
+            ...securityHeaders(true),
+          },
+        });
+      }
+
+      // POST — run translation via Claude Haiku
+      const formData = await request.formData();
+      const sourceSlug = formData.get("slug")?.trim();
+      const targetLang = formData.get("target_lang")?.trim();
+
+      if (!sourceSlug || !targetLang) {
+        return new Response("Missing fields", { status: 400 });
+      }
+      if (!env.ANTHROPIC_API_KEY) {
+        const page = await env.DB.prepare(
+          "SELECT slug, title FROM pages WHERE slug = ?",
+        )
+          .bind(sourceSlug)
+          .first();
+        return new Response(
+          renderAdminTranslate(page, "ANTHROPIC_API_KEY not configured."),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8",
+              ...securityHeaders(true),
+            },
+          },
+        );
+      }
+
+      const sourcePage = await env.DB.prepare(
+        "SELECT * FROM pages WHERE slug = ?",
+      )
+        .bind(sourceSlug)
+        .first();
+      if (!sourcePage)
+        return new Response("Source page not found", { status: 404 });
+
+      // Build target slug: de/gymnastics-scoring (strip any existing lang prefix first)
+      const baseSlug = sourceSlug.replace(/^[a-z]{2}\//, "");
+      const targetSlug = `${targetLang}/${baseSlug}`;
+
+      const existing = await env.DB.prepare(
+        "SELECT slug FROM pages WHERE slug = ?",
+      )
+        .bind(targetSlug)
+        .first();
+      if (existing) {
+        return new Response(
+          renderAdminTranslate(
+            sourcePage,
+            `A page already exists at /${targetSlug}. Edit or delete it first.`,
+          ),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8",
+              ...securityHeaders(true),
+            },
+          },
+        );
+      }
+
+      const langName = LANG_NAMES[targetLang] || targetLang;
+      const translateRes = await fetch(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            "x-api-key": env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 8192,
+            system: `You are a professional translator specialising in gymnastics and sports content.
+Translate HTML from English to ${langName}.
+Rules:
+- Preserve all HTML tags exactly — translate only visible text
+- Keep athlete names, competition names, and technical gymnastics terms accurate
+- Match the source tone: direct, opinionated, coach-to-coach
+- Output only the translated HTML with no introduction or explanation`,
+            messages: [
+              {
+                role: "user",
+                content: `Translate the following to ${langName}:\n\n${sourcePage.body_html}`,
+              },
+            ],
+          }),
+        },
+      );
+
+      const translateData = await translateRes.json();
+      if (translateData.type === "error") {
+        return new Response(
+          renderAdminTranslate(
+            sourcePage,
+            `Translation failed: ${translateData.error?.message}`,
+          ),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8",
+              ...securityHeaders(true),
+            },
+          },
+        );
+      }
+
+      const translatedHtml =
+        translateData.content?.find((b) => b.type === "text")?.text || "";
+      const inputTokens = translateData.usage?.input_tokens || 0;
+      const outputTokens = translateData.usage?.output_tokens || 0;
+      // Haiku 4.5: $1.00/1M input, $5.00/1M output
+      const costUsd =
+        (inputTokens / 1_000_000) * 1.0 + (outputTokens / 1_000_000) * 5.0;
+
+      // Strip dangerous constructs from translated HTML
+      const safeHtml = translatedHtml
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
+        .replace(/\bhref\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "")
+        .replace(/\bsrc\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "");
+
+      await env.DB.prepare(
+        `INSERT INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, template, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 'haiku-translation', 'legacy', datetime('now'))`,
+      )
+        .bind(
+          targetSlug,
+          sourcePage.title,
+          sourcePage.meta_description,
+          sourcePage.keyword,
+          sourcePage.page_type,
+          safeHtml,
+          sourcePage.image_url,
+          targetLang,
+        )
+        .run();
+
+      await env.DB.prepare(
+        `INSERT INTO translation_log (source_slug, target_slug, target_lang, input_tokens, output_tokens, cost_usd)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(
+          sourceSlug,
+          targetSlug,
+          targetLang,
+          inputTokens,
+          outputTokens,
+          costUsd,
+        )
+        .run();
+
+      return redirect(
+        `/admin/edit?slug=${encodeURIComponent(targetSlug)}&translated=1`,
+      );
     }
 
     // Admin — events list
@@ -2230,11 +2625,29 @@ export default {
     }
 
     // Sitemap
+    // Sitemap index
     if (path === "/sitemap.xml") {
       const { results } = await env.DB.prepare(
         "SELECT slug FROM pages WHERE status = 'published' ORDER BY id LIMIT 50000",
       ).all();
-      return new Response(renderSitemap(results, url.host), {
+      const langs = [...new Set(results.map((p) => langFromSlug(p.slug)))];
+      if (langs.length === 0) langs.push("en");
+      return new Response(renderSitemapIndex(langs, url.host), {
+        headers: {
+          "Content-Type": "application/xml",
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+
+    // Per-language sitemaps: /sitemap-en.xml, /sitemap-de.xml, etc.
+    const langSitemapMatch = path.match(/^\/sitemap-([a-z]{2})\.xml$/);
+    if (langSitemapMatch) {
+      const lang = langSitemapMatch[1];
+      const { results } = await env.DB.prepare(
+        "SELECT slug FROM pages WHERE status = 'published' ORDER BY id LIMIT 50000",
+      ).all();
+      return new Response(renderLangSitemap(results, lang, url.host), {
         headers: {
           "Content-Type": "application/xml",
           "Cache-Control": "public, max-age=3600",
@@ -2287,17 +2700,37 @@ export default {
     if (!slug || slug.includes("..") || slug.includes("<")) {
       return new Response("Not found", { status: 404 });
     }
-    const page = await env.DB.prepare(
+    let page = await env.DB.prepare(
       "SELECT * FROM pages WHERE slug = ? AND status = 'published'",
     )
       .bind(slug)
       .first();
+
+    // Language fallback: /de/slug → /slug if no translated page exists yet
+    if (!page && /^[a-z]{2}\//.test(slug)) {
+      const baseSlug = slug.slice(3);
+      page = await env.DB.prepare(
+        "SELECT * FROM pages WHERE slug = ? AND status = 'published'",
+      )
+        .bind(baseSlug)
+        .first();
+    }
+
     if (!page) {
       return new Response("Page not found", {
         status: 404,
         headers: { "Content-Type": "text/plain" },
       });
     }
+
+    // Fetch hreflang siblings (same base slug, all published languages)
+    const baseSlug = page.slug.replace(/^[a-z]{2}\//, "");
+    const { results: siblings } = await env.DB.prepare(
+      "SELECT slug, lang FROM pages WHERE (slug = ? OR slug LIKE ?) AND status = 'published'",
+    )
+      .bind(baseSlug, `%/${baseSlug}`)
+      .all();
+
     ctx.waitUntil(
       env.DB.prepare(
         "INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)",
@@ -2305,17 +2738,27 @@ export default {
         .bind(slug, userAgent.slice(0, 200), country, bot)
         .run(),
     );
-    return new Response(
-      renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID),
-      {
-        headers: {
-          "Content-Type": "text/html; charset=UTF-8",
-          "Cache-Control": "public, max-age=3600",
-          "X-Robots-Tag": "index, follow",
-          ...securityHeaders(),
-        },
+
+    const html =
+      page.template === "flagship"
+        ? renderPage(
+            page,
+            env.SITE_NAME,
+            env.SITE_DESCRIPTION,
+            GA_ID,
+            siblings,
+            url.host,
+          )
+        : renderLegacyPage(page, env.SITE_NAME, GA_ID, siblings, url.host);
+
+    return new Response(html, {
+      headers: {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Cache-Control": "public, max-age=3600",
+        "X-Robots-Tag": "index, follow",
+        ...securityHeaders(),
       },
-    );
+    });
   },
 
   async scheduled(event, env, ctx) {

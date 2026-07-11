@@ -1,0 +1,32 @@
+name: Translate pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_slug:
+        description: "Source page slug (English, e.g. gymnastics-scoring-guide)"
+        required: true
+      target_lang:
+        description: "Target language code (de, fr, es, pt, it, nl, ja, zh)"
+        required: true
+      worker_url:
+        description: "Worker base URL (e.g. https://gymtastic.cc)"
+        required: true
+        default: "https://gymtastic.cc"
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger translation via Worker admin API
+        run: |
+          curl -X POST "${{ inputs.worker_url }}/admin/translate" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -H "Cookie: admin_session=${{ secrets.ADMIN_SESSION_TOKEN }}" \
+            --data-urlencode "slug=${{ inputs.source_slug }}" \
+            --data-urlencode "target_lang=${{ inputs.target_lang }}" \
+            --fail \
+            --location \
+            --silent \
+            --show-error
+          echo "Translation dispatched for ${{ inputs.source_slug }} → ${{ inputs.target_lang }}"

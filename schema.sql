@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS pages (
   status TEXT NOT NULL DEFAULT 'published',
   source TEXT,
   lang TEXT NOT NULL DEFAULT 'en',
+  template TEXT NOT NULL DEFAULT 'legacy',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -39,3 +40,17 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_year ON events(year);
+
+CREATE TABLE IF NOT EXISTS translation_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_slug TEXT NOT NULL,
+  target_slug TEXT NOT NULL,
+  target_lang TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Backfill existing pages (run once after migration):
+-- UPDATE pages SET source='contentclaw', status='published', lang='en', template='legacy' WHERE source IS NULL;
