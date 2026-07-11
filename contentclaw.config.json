@@ -1,6 +1,6 @@
 {
-  "provider": "openai",
-  "model": "gpt-4.1-mini",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
   "webSearch": true,
   "language": "en",
   "tone": "opinionated coach talking to another coach — direct, specific, willing to disagree with conventional wisdom",
