@@ -1494,7 +1494,7 @@ async function verifySessionToken(cookieValue, adminToken) {
 
 function securityHeaders(isAdmin = false) {
   const csp = isAdmin
-    ? `default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'`
+    ? `default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'`
     : `default-src 'self'; script-src 'self' https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
   return {
     "Content-Security-Policy": csp,
