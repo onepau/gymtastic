@@ -5,6 +5,8 @@ contentclaw.db-wal
 import-pages.sql
 .env
 *.env
+.dev.vars
+**/.dev.vars
 .wrangler/
 worker/.wrangler/
 .ipynb_checkpoints/

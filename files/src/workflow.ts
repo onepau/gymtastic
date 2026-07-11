@@ -1,9 +1,7 @@
-import { screenInput } from "./guardrails";
 import {
-  classifyGymnastics,
   classifyArticleRequest,
   classifyEventType,
-  classifyAthleteRelated
+  classifyAthleteRelated,
 } from "./classify";
 import {
   runOrchestrator,
@@ -11,56 +9,51 @@ import {
   runAthleteData,
   runArticleWriter,
   runEditorialQA,
-  runFallback
+  runFallback,
 } from "./agents";
+import { vectorUpsert } from "./vectorize";
 
 export interface WorkflowInput {
   input_as_text: string;
 }
 
 export async function runWorkflow(workflow: WorkflowInput) {
-  const guardrails = await screenInput(workflow.input_as_text);
-  if (guardrails.hasTripwire) {
-    return guardrails.failOutput;
-  }
-  const safeInput = guardrails.safeText;
+  const input = workflow.input_as_text;
 
-  const { category: topLevel } = await classifyGymnastics(safeInput);
-  if (topLevel !== "gymnastics_related") {
-    return { output_text: await runFallback(safeInput) };
-  }
-
-  const { category: articleCheck } = await classifyArticleRequest(safeInput);
+  const { category: articleCheck } = await classifyArticleRequest(input);
   if (articleCheck !== "is_article_request") {
-    return { output_text: await runFallback(safeInput) };
+    return { output_text: await runFallback(input) };
   }
 
-  const orchestratorContext = await runOrchestrator(safeInput);
+  const orchestratorContext = await runOrchestrator(input);
 
-  const { category: eventType } = await classifyEventType(safeInput);
+  const { category: eventType } = await classifyEventType(input);
 
   if (eventType === "Specific event") {
     const resultsOutput = await runCompetitionResults(
-      `${safeInput}\n\nOrchestrator context:\n${orchestratorContext}`
+      `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
     );
+    vectorUpsert("competition", input, resultsOutput).catch(() => {});
+
     // NOTE: the original workflow also ran a 05 Image embedding step here before
     // article writing. Deliberately omitted — see MIGRATION_NOTES.md.
     const articleOutput = await runArticleWriter(
-      `${safeInput}\n\nCompetition results:\n${resultsOutput}`
+      `${input}\n\nCompetition results:\n${resultsOutput}`,
     );
     const qaOutput = await runEditorialQA(articleOutput);
     return { output_text: qaOutput };
   }
 
-  const { category: athleteCheck } = await classifyAthleteRelated(safeInput);
+  const { category: athleteCheck } = await classifyAthleteRelated(input);
   if (athleteCheck === "athlete_related") {
     const athleteOutput = await runAthleteData(
-      `${safeInput}\n\nOrchestrator context:\n${orchestratorContext}`
+      `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
     );
+    vectorUpsert("athlete", input, athleteOutput).catch(() => {});
     return { output_text: athleteOutput };
   }
 
-  return { output_text: await runFallback(safeInput) };
+  return { output_text: await runFallback(input) };
 }
 
 // Local test entrypoint: `npm start "your query here"`

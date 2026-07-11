@@ -1394,15 +1394,106 @@ function renderAdminLogin(error) {
 </html>`;
 }
 
-function renderAdminPageList(pages) {
+const STATUS_COLORS = {
+  published: "background:#dcfce7;color:#166534",
+  draft: "background:#fef9c3;color:#854d0e",
+  hidden: "background:#f3f4f6;color:#6b7280",
+  deleted: "background:#fee2e2;color:#991b1b",
+};
+
+function statusBadge(status) {
+  const s = status || "published";
+  return `<span style="font-size:0.7rem;padding:0.15rem 0.5rem;border-radius:9999px;font-weight:600;${STATUS_COLORS[s] || ""}">${s}</span>`;
+}
+
+function renderAdminDashboard(counts, eventsTotal) {
+  const statRows = ["published", "draft", "hidden", "deleted"]
+    .map(
+      (s) =>
+        `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid #f3f4f6">
+          ${statusBadge(s)}
+          <strong>${counts[s] || 0}</strong>
+        </div>`,
+    )
+    .join("");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Dashboard</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Dashboard</h1>
+    <form method="POST" action="/admin/logout" style="margin:0">
+      <button class="btn btn-ghost" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem" type="submit">Sign out</button>
+    </form>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem">
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:1rem">
+      <div style="font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Pages by status</div>
+      ${statRows}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0">
+        <span style="font-size:0.8rem;color:#6b7280">Total</span>
+        <strong>${Object.values(counts).reduce((a, b) => a + b, 0)}</strong>
+      </div>
+    </div>
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:1rem">
+      <div style="font-size:0.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Events</div>
+      <div style="font-size:2rem;font-weight:700;margin:0.5rem 0">${eventsTotal}</div>
+      <a href="/admin/events" style="font-size:0.8rem;color:#1d4ed8">View all events →</a>
+    </div>
+  </div>
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+    <a class="btn" href="/admin/pages">All pages</a>
+    <a class="btn btn-secondary" href="/admin/pages?status=draft">Review drafts</a>
+    <a class="btn btn-secondary" href="/admin/new">+ Add page</a>
+    <a class="btn btn-secondary" href="/admin/events">Events</a>
+    <a class="btn btn-secondary" href="/admin/generate">Generate content</a>
+  </div>
+</body>
+</html>`;
+}
+
+function renderAdminPages(pages, filters) {
+  const { status = "", source = "", lang = "" } = filters || {};
+  const qs = (overrides) => {
+    const p = new URLSearchParams({
+      ...(status ? { status } : {}),
+      ...(source ? { source } : {}),
+      ...(lang ? { lang } : {}),
+      ...overrides,
+    });
+    const s = p.toString();
+    return s ? `?${s}` : "";
+  };
+
+  const statuses = ["", "published", "draft", "hidden", "deleted"];
+  const statusTabs = statuses
+    .map((s) => {
+      const active = s === status;
+      return `<a href="/admin/pages${qs({ status: s })}" style="padding:0.35rem 0.75rem;border-radius:6px;font-size:0.8rem;font-weight:500;text-decoration:none;${active ? "background:#1d4ed8;color:#fff" : "color:#374151"}">${s || "All"}</a>`;
+    })
+    .join("");
+
   const rows = pages
     .map(
       (p) => `
     <tr>
       <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">${escapeHtml(p.title)}</a></td>
-      <td><code>/${escapeHtml(p.slug)}</code></td>
+      <td><code style="font-size:0.75rem">/${escapeHtml(p.slug)}</code></td>
       <td><span class="tag">${escapeHtml(p.page_type || "")}</span></td>
-      <td><a href="/admin/edit?slug=${encodeURIComponent(p.slug)}">Edit</a></td>
+      <td>${statusBadge(p.status)}</td>
+      <td style="font-size:0.8rem;color:#6b7280">${escapeHtml(p.lang || "en")}</td>
+      <td style="font-size:0.8rem;color:#6b7280">${escapeHtml(p.source || "")}</td>
+      <td style="white-space:nowrap">
+        <a href="/admin/edit?slug=${encodeURIComponent(p.slug)}" style="font-size:0.8rem">Edit</a>
+        ${p.status !== "published" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="published"><button type="submit" style="background:none;border:none;color:#16a34a;cursor:pointer;font-size:0.8rem;padding:0">Publish</button></form>` : ""}
+        ${p.status !== "draft" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="draft"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Draft</button></form>` : ""}
+        ${p.status !== "hidden" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="hidden"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Hide</button></form>` : ""}
+      </td>
     </tr>`,
     )
     .join("");
@@ -1418,17 +1509,22 @@ function renderAdminPageList(pages) {
 <body>
   <div class="nav">
     <h1>Pages <span style="font-size:0.85rem;font-weight:400;color:#6b7280">(${pages.length})</span></h1>
-    <form method="POST" action="/admin/logout" style="margin:0">
-      <button class="btn btn-ghost" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem" type="submit">Sign out</button>
-    </form>
+    <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
   </div>
-  <a class="btn" style="margin-top:0" href="/admin/new">+ Add new page</a>
-  <table>
-    <thead>
-      <tr><th>Title</th><th>Slug</th><th>Type</th><th></th></tr>
-    </thead>
+  <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1rem;background:#f9fafb;padding:0.5rem;border-radius:8px">
+    ${statusTabs}
+  </div>
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem">
+    <a class="btn" href="/admin/new">+ Add page</a>
+  </div>
+  ${
+    pages.length
+      ? `<table>
+    <thead><tr><th>Title</th><th>Slug</th><th>Type</th><th>Status</th><th>Lang</th><th>Source</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
-  </table>
+  </table>`
+      : `<p style="color:#6b7280">No pages found.</p>`
+  }
 </body>
 </html>`;
 }
@@ -1497,12 +1593,200 @@ function renderAdminForm(page) {
     <label for="page_type">Page type</label>
     <select id="page_type" name="page_type">${typeOptions}</select>
 
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+      <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          ${["draft", "published", "hidden", "deleted"].map((s) => `<option value="${s}"${(page?.status || "draft") === s ? " selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label for="lang">Language</label>
+        <select id="lang" name="lang">
+          ${["en", "de", "fr", "es", "pt", "it", "nl", "ja", "zh"].map((l) => `<option value="${l}"${(page?.lang || "en") === l ? " selected" : ""}>${l}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label for="source">Source</label>
+        <select id="source" name="source">
+          ${["", "contentclaw", "gymbot", "manual"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+
     <label for="body_html">Content (HTML)</label>
     <textarea id="body_html" name="body_html" required placeholder="<p>Your content here...</p>">${val("body_html")}</textarea>
 
     <button class="btn" type="submit">${isEdit ? "Save changes" : "Save page"}</button>
-    <a class="btn btn-secondary" href="/admin">Cancel</a>
+    <a class="btn btn-secondary" href="/admin/pages">Cancel</a>
   </form>
+</body>
+</html>`;
+}
+
+function renderAdminEvents(events, year) {
+  const yearOptions = [2024, 2025, 2026, 2027]
+    .map(
+      (y) =>
+        `<option value="${y}"${y === year ? " selected" : ""}>${y}</option>`,
+    )
+    .join("");
+  const rows = events
+    .map((e) => {
+      const discs = JSON.parse(e.disciplines || "[]").join(", ");
+      const changed = e.change_flag
+        ? '<span style="color:#e8005a;font-size:0.75rem">&#9679; changed</span>'
+        : "";
+      return `<tr>
+      <td style="font-size:0.75rem;color:#6b7280">${escapeHtml(e.id)}</td>
+      <td>${escapeHtml(e.title)}</td>
+      <td>${escapeHtml(e.city)}</td>
+      <td style="white-space:nowrap">${escapeHtml(e.dates)}</td>
+      <td style="font-size:0.8rem">${escapeHtml(discs)}</td>
+      <td>${e.year}</td>
+      <td>${changed}</td>
+      <td style="white-space:nowrap">
+        <a href="/admin/events/${encodeURIComponent(e.id)}/edit" style="font-size:0.8rem">Edit</a>
+        <form method="POST" action="/admin/events/${encodeURIComponent(e.id)}/delete" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Delete this event?')">
+          <button type="submit" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:0.8rem;padding:0">Delete</button>
+        </form>
+      </td>
+    </tr>`;
+    })
+    .join("");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Events</title>
+  <style>${adminStyles()}
+    table { font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Events <span style="font-size:0.85rem;font-weight:400;color:#6b7280">(${events.length})</span></h1>
+    <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
+  </div>
+  <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+    <form method="GET" action="/admin/events" style="display:flex;gap:0.5rem;align-items:center;margin:0">
+      <label for="year" style="font-size:0.875rem;font-weight:500">Year</label>
+      <select id="year" name="year" style="padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem">
+        ${yearOptions}
+      </select>
+      <button class="btn btn-secondary" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem" type="submit">Filter</button>
+    </form>
+    <a class="btn" href="/admin/events/new" style="margin:0">+ Add event</a>
+  </div>
+  ${
+    events.length
+      ? `<table>
+    <thead><tr><th>ID</th><th>Title</th><th>City</th><th>Dates</th><th>Disciplines</th><th>Year</th><th></th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`
+      : `<p style="color:#6b7280">No events found for ${year}. <a href="/admin/events/new">Add one</a>.</p>`
+  }
+</body>
+</html>`;
+}
+
+function renderAdminEventForm(event, error) {
+  const isEdit = !!event;
+  const val = (f, fallback = "") =>
+    event ? escapeHtml(String(event[f] ?? fallback)) : fallback;
+  const disciplines = isEdit
+    ? JSON.parse(event.disciplines || "[]").join(", ")
+    : "";
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [currentYear - 1, currentYear, currentYear + 1]
+    .map(
+      (y) =>
+        `<option value="${y}"${(event?.year ?? currentYear) == y ? " selected" : ""}>${y}</option>`,
+    )
+    .join("");
+  const action = isEdit
+    ? `/admin/events/${encodeURIComponent(event.id)}/edit`
+    : "/admin/events/new";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isEdit ? "Edit event" : "Add event"} — Admin</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>${isEdit ? "Edit event" : "Add event"}</h1>
+    <a class="btn btn-ghost" href="/admin/events" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Events</a>
+  </div>
+  ${error ? `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:1rem;margin-bottom:1rem">${escapeHtml(error)}</div>` : ""}
+  <form method="POST" action="${action}">
+    <label for="id">Event ID <span style="color:#6b7280;font-size:0.8rem">(unique, e.g. fig-wc-2026-paris-ag)</span></label>
+    <input type="text" id="id" name="id" required value="${val("id")}"
+      placeholder="fig-wc-2026-paris-ag"
+      ${isEdit ? 'readonly style="background:#f3f4f6;color:#6b7280"' : ""}>
+    ${isEdit ? '<p class="hint">ID cannot be changed after creation.</p>' : ""}
+
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required value="${val("title")}"
+      placeholder="World Artistic Gymnastics Championships">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <label for="city">City</label>
+        <input type="text" id="city" name="city" required value="${val("city")}" placeholder="Paris">
+      </div>
+      <div>
+        <label for="year">Year</label>
+        <select id="year" name="year">${yearOptions}</select>
+      </div>
+    </div>
+
+    <label for="dates">Dates <span style="color:#6b7280;font-size:0.8rem">(e.g. 18–27 Oct 2026)</span></label>
+    <input type="text" id="dates" name="dates" required value="${val("dates")}" placeholder="18–27 Oct 2026">
+
+    <label for="disciplines">Disciplines <span style="color:#6b7280;font-size:0.8rem">(comma-separated)</span></label>
+    <input type="text" id="disciplines" name="disciplines" value="${escapeHtml(disciplines)}"
+      placeholder="Artistic Gymnastics, Rhythmic Gymnastics">
+
+    <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;cursor:pointer">
+      <input type="checkbox" name="change_flag" value="1"${event?.change_flag ? " checked" : ""}>
+      Mark as changed
+    </label>
+
+    <div style="margin-top:1rem;display:flex;gap:0.75rem">
+      <button class="btn" type="submit">${isEdit ? "Save changes" : "Add event"}</button>
+      <a class="btn btn-secondary" href="/admin/events">Cancel</a>
+    </div>
+  </form>
+</body>
+</html>`;
+}
+
+function renderAdminGenerate() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Generate content</title>
+  <style>${adminStyles()}</style>
+</head>
+<body>
+  <div class="nav">
+    <h1>Generate content</h1>
+    <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
+  </div>
+  <p style="color:#6b7280;max-width:520px">
+    Content generation via GitHub Actions is configured in Guide 4.
+    Once wired up, this form will dispatch a workflow run to generate a new article as a draft.
+  </p>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:1.5rem;max-width:520px">
+    <p style="margin:0;font-size:0.875rem;color:#374151">Coming soon — see <code>files/04-github-actions.md</code> for setup instructions.</p>
+  </div>
 </body>
 </html>`;
 }
@@ -1598,17 +1882,76 @@ export default {
       }
     }
 
-    // Admin — page list
+    // Admin — dashboard
     if (path === "/admin") {
-      const { results } = await env.DB.prepare(
-        "SELECT slug, title, page_type FROM pages ORDER BY page_type, title LIMIT 1000",
+      const { results: statusRows } = await env.DB.prepare(
+        "SELECT status, COUNT(*) as n FROM pages GROUP BY status",
       ).all();
-      return new Response(renderAdminPageList(results), {
+      const counts = Object.fromEntries(
+        statusRows.map((r) => [r.status || "published", r.n]),
+      );
+      const eventsTotal =
+        (await env.DB.prepare("SELECT COUNT(*) as n FROM events").first())?.n ??
+        0;
+      return new Response(renderAdminDashboard(counts, eventsTotal), {
         headers: {
           "Content-Type": "text/html; charset=UTF-8",
           ...securityHeaders(true),
         },
       });
+    }
+
+    // Admin — pages list (filterable)
+    if (path === "/admin/pages") {
+      const status = url.searchParams.get("status") || "";
+      const source = url.searchParams.get("source") || "";
+      const lang = url.searchParams.get("lang") || "";
+      let query =
+        "SELECT slug, title, page_type, status, source, lang FROM pages";
+      const conditions = [];
+      const binds = [];
+      if (status) {
+        conditions.push("status = ?");
+        binds.push(status);
+      }
+      if (source) {
+        conditions.push("source = ?");
+        binds.push(source);
+      }
+      if (lang) {
+        conditions.push("lang = ?");
+        binds.push(lang);
+      }
+      if (conditions.length) query += " WHERE " + conditions.join(" AND ");
+      query += " ORDER BY created_at DESC LIMIT 1000";
+      const stmt = env.DB.prepare(query);
+      const { results } = await (
+        binds.length ? stmt.bind(...binds) : stmt
+      ).all();
+      return new Response(renderAdminPages(results, { status, source, lang }), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
+    }
+
+    // Admin — quick status change
+    if (path === "/admin/pages/status" && request.method === "POST") {
+      const formData = await request.formData();
+      const slug = formData.get("slug")?.trim();
+      const status = formData.get("status")?.trim();
+      const validStatuses = ["draft", "published", "hidden", "deleted"];
+      if (!slug || !validStatuses.includes(status)) {
+        return new Response("Invalid request", { status: 400 });
+      }
+      await env.DB.prepare(
+        "UPDATE pages SET status = ?, updated_at = datetime('now') WHERE slug = ?",
+      )
+        .bind(status, slug)
+        .run();
+      const ref = request.headers.get("Referer") || "/admin/pages";
+      return redirect(ref);
     }
 
     // Admin — new page form
@@ -1624,7 +1967,7 @@ export default {
     // Admin — edit existing page
     if (path === "/admin/edit") {
       const slug = url.searchParams.get("slug");
-      if (!slug) return redirect("/admin");
+      if (!slug) return redirect("/admin/pages");
       const page = await env.DB.prepare("SELECT * FROM pages WHERE slug = ?")
         .bind(slug)
         .first();
@@ -1650,8 +1993,14 @@ export default {
       const keyword = formData.get("keyword")?.trim();
       const page_type = formData.get("page_type")?.trim();
       const body_html = formData.get("body_html")?.trim();
+      const status = ["draft", "published", "hidden", "deleted"].includes(
+        formData.get("status"),
+      )
+        ? formData.get("status")
+        : "draft";
+      const lang = formData.get("lang")?.trim() || "en";
+      const source = formData.get("source")?.trim() || null;
 
-      // 3.3: strict slug validation — plain slugs or lang-prefixed (e.g. de/slug)
       if (!slug || !/^(?:[a-z]{2}\/)?[a-z0-9-]{1,200}$/.test(slug)) {
         return new Response(
           "Invalid slug: use only lowercase letters, numbers, and hyphens. Language prefix allowed (e.g. de/slug)",
@@ -1662,14 +2011,12 @@ export default {
         return new Response("Missing required fields", { status: 400 });
       }
 
-      // 3.2: strip the most dangerous constructs from body_html before storing
       const safe_body_html = body_html
         .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
         .replace(/\bhref\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "")
         .replace(/\bsrc\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "");
 
-      // 3.4: only allow https image URLs
       let image_url = formData.get("image_url")?.trim() || null;
       if (image_url) {
         try {
@@ -1680,7 +2027,9 @@ export default {
       }
 
       await env.DB.prepare(
-        "INSERT OR REPLACE INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        `INSERT OR REPLACE INTO pages
+           (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
         .bind(
           slug,
@@ -1690,15 +2039,200 @@ export default {
           page_type,
           safe_body_html,
           image_url,
+          status,
+          lang,
+          source,
         )
         .run();
-      return redirect(`/${slug}`);
+      return redirect(`/admin/pages`);
+    }
+
+    // Admin — generate stub
+    if (path === "/admin/generate") {
+      return new Response(renderAdminGenerate(), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
+    }
+
+    // Admin — events list
+    if (path === "/admin/events") {
+      const year =
+        parseInt(url.searchParams.get("year") || "") ||
+        new Date().getFullYear();
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM events WHERE year = ? ORDER BY dates",
+      )
+        .bind(year)
+        .all();
+      return new Response(renderAdminEvents(results, year), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
+    }
+
+    // Admin — new event form
+    if (path === "/admin/events/new") {
+      if (request.method === "POST") {
+        const formData = await request.formData();
+        const id = formData.get("id")?.trim();
+        const title = formData.get("title")?.trim();
+        const city = formData.get("city")?.trim() || "";
+        const dates = formData.get("dates")?.trim() || "";
+        const year =
+          parseInt(formData.get("year") || "") || new Date().getFullYear();
+        const disciplinesRaw = formData.get("disciplines")?.trim() || "";
+        const disciplines = disciplinesRaw
+          ? disciplinesRaw
+              .split(",")
+              .map((d) => d.trim())
+              .filter(Boolean)
+          : [];
+        const change_flag = formData.get("change_flag") === "1" ? 1 : 0;
+
+        if (!id || !title) {
+          return new Response(
+            renderAdminEventForm(
+              {
+                id,
+                title,
+                city,
+                dates,
+                year,
+                disciplines: JSON.stringify(disciplines),
+                change_flag,
+              },
+              "ID and title are required.",
+            ),
+            {
+              headers: {
+                "Content-Type": "text/html; charset=UTF-8",
+                ...securityHeaders(true),
+              },
+            },
+          );
+        }
+        await env.DB.prepare(
+          `INSERT INTO events (id, title, city, dates, disciplines, year, change_flag, synced_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        )
+          .bind(
+            id,
+            title,
+            city,
+            dates,
+            JSON.stringify(disciplines),
+            year,
+            change_flag,
+          )
+          .run();
+        return redirect(`/admin/events?year=${year}`);
+      }
+      return new Response(renderAdminEventForm(null), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
+    }
+
+    // Admin — edit / delete event (path: /admin/events/:id/edit or /delete)
+    const eventEditMatch = path.match(
+      /^\/admin\/events\/([^/]+)\/(edit|delete)$/,
+    );
+    if (eventEditMatch) {
+      const eventId = decodeURIComponent(eventEditMatch[1]);
+      const action = eventEditMatch[2];
+
+      if (action === "delete" && request.method === "POST") {
+        const event = await env.DB.prepare(
+          "SELECT year FROM events WHERE id = ?",
+        )
+          .bind(eventId)
+          .first();
+        await env.DB.prepare("DELETE FROM events WHERE id = ?")
+          .bind(eventId)
+          .run();
+        return redirect(
+          `/admin/events?year=${event?.year || new Date().getFullYear()}`,
+        );
+      }
+
+      const event = await env.DB.prepare("SELECT * FROM events WHERE id = ?")
+        .bind(eventId)
+        .first();
+      if (!event) return new Response("Event not found", { status: 404 });
+
+      if (action === "edit" && request.method === "POST") {
+        const formData = await request.formData();
+        const title = formData.get("title")?.trim();
+        const city = formData.get("city")?.trim() || "";
+        const dates = formData.get("dates")?.trim() || "";
+        const year =
+          parseInt(formData.get("year") || "") || new Date().getFullYear();
+        const disciplinesRaw = formData.get("disciplines")?.trim() || "";
+        const disciplines = disciplinesRaw
+          ? disciplinesRaw
+              .split(",")
+              .map((d) => d.trim())
+              .filter(Boolean)
+          : [];
+        const change_flag = formData.get("change_flag") === "1" ? 1 : 0;
+
+        if (!title) {
+          return new Response(
+            renderAdminEventForm(
+              {
+                ...event,
+                title,
+                city,
+                dates,
+                year,
+                disciplines: JSON.stringify(disciplines),
+                change_flag,
+              },
+              "Title is required.",
+            ),
+            {
+              headers: {
+                "Content-Type": "text/html; charset=UTF-8",
+                ...securityHeaders(true),
+              },
+            },
+          );
+        }
+        await env.DB.prepare(
+          `UPDATE events SET title=?, city=?, dates=?, disciplines=?, year=?, change_flag=?, synced_at=datetime('now') WHERE id=?`,
+        )
+          .bind(
+            title,
+            city,
+            dates,
+            JSON.stringify(disciplines),
+            year,
+            change_flag,
+            eventId,
+          )
+          .run();
+        return redirect(`/admin/events?year=${year}`);
+      }
+
+      return new Response(renderAdminEventForm(event), {
+        headers: {
+          "Content-Type": "text/html; charset=UTF-8",
+          ...securityHeaders(true),
+        },
+      });
     }
 
     // Sitemap
     if (path === "/sitemap.xml") {
       const { results } = await env.DB.prepare(
-        "SELECT slug FROM pages ORDER BY id LIMIT 50000",
+        "SELECT slug FROM pages WHERE status = 'published' ORDER BY id LIMIT 50000",
       ).all();
       return new Response(renderSitemap(results, url.host), {
         headers: {
@@ -1719,7 +2253,7 @@ export default {
     // Homepage
     if (path === "/" || path === "") {
       const { results } = await env.DB.prepare(
-        "SELECT slug, title, page_type, meta_description, image_url FROM pages ORDER BY page_type, title LIMIT 500",
+        "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY page_type, title LIMIT 500",
       ).all();
       ctx.waitUntil(
         env.DB.prepare(
@@ -1753,7 +2287,9 @@ export default {
     if (!slug || slug.includes("..") || slug.includes("<")) {
       return new Response("Not found", { status: 404 });
     }
-    const page = await env.DB.prepare("SELECT * FROM pages WHERE slug = ?")
+    const page = await env.DB.prepare(
+      "SELECT * FROM pages WHERE slug = ? AND status = 'published'",
+    )
       .bind(slug)
       .first();
     if (!page) {
