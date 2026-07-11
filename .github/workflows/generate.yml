@@ -4,22 +4,38 @@ on:
   workflow_dispatch:
     inputs:
       keyword:
-        description: "Target keyword / topic"
-        required: true
+        description: "Keyword / topic (ignored when seeds_file is set)"
+        required: false
       page_type:
         description: "Page type"
-        required: true
-        default: blog
+        required: false
+        default: auto
         type: choice
         options:
-          [blog, hub, how-to, glossary, comparison, listicle, review, landing]
-      lang:
-        description: "Language (en only — translate separately)"
-        required: true
-        default: en
-      seeds_file:
-        description: "Path to seeds CSV (leave blank to use keyword above)"
+          [
+            auto,
+            blog,
+            hub,
+            how-to,
+            glossary,
+            comparison,
+            listicle,
+            review,
+            alternatives,
+            landing,
+          ]
+      expand:
+        description: "Expand keyword into N variations (leave blank to skip)"
         required: false
+        default: ""
+      seeds_file:
+        description: "Seeds CSV path relative to repo root (e.g. seeds.csv)"
+        required: false
+        default: ""
+      competitor:
+        description: "Competitor sitemap URL for gap analysis (optional)"
+        required: false
+        default: ""
 
 jobs:
   generate:
@@ -31,23 +47,38 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install ContentClaw dependencies
-        run: npm install
-        working-directory: .
+      - name: Install dependencies
+        run: npm install --prefix . 2>/dev/null || true
 
-      - name: Run ContentClaw generation
+      - name: Generate content with ContentClaw
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # ContentClaw runs as a local server; invoke CLI or script here.
-          # Replace with your actual ContentClaw invocation:
-          # node contentclaw-cli.js --keyword "${{ inputs.keyword }}" --type "${{ inputs.page_type }}"
-          echo "TODO: wire ContentClaw CLI invocation"
+          ARGS=""
 
-      - name: Export to D1 import SQL
+          # Seeds file takes priority over keyword
+          if [ -n "${{ inputs.seeds_file }}" ]; then
+            ARGS="$ARGS --input ${{ inputs.seeds_file }}"
+          elif [ -n "${{ inputs.keyword }}" ]; then
+            ARGS="$ARGS \"${{ inputs.keyword }}\""
+            if [ -n "${{ inputs.expand }}" ]; then
+              ARGS="$ARGS --expand ${{ inputs.expand }}"
+            fi
+            if [ -n "${{ inputs.page_type }}" ] && [ "${{ inputs.page_type }}" != "auto" ]; then
+              ARGS="$ARGS --type ${{ inputs.page_type }}"
+            fi
+          fi
+
+          if [ -n "${{ inputs.competitor }}" ]; then
+            ARGS="$ARGS --competitor ${{ inputs.competitor }}"
+          fi
+
+          eval npx contentclaw generate $ARGS --yes
+
+      - name: Export to D1 SQL
         run: node export-to-d1.js
 
-      - name: Push to remote D1 (draft status)
+      - name: Push drafts to remote D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

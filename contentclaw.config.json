@@ -4,21 +4,20 @@
   "websearch": true,
   "language": "en",
   "tone": "opinionated coach talking to another coach — direct, specific, willing to disagree with conventional wisdom",
-  "wordCount": 900,
+  "wordCount": 1400,
   "brand": {
     "name": "Gymtastic",
     "url": "https://gymtastic.cc",
     "description": "Written by gymnastics obsessives for gymnastics obsessives. Opinionated, specific, occasionally blunt about bad judging or overrated routines. Never encyclopaedic or neutral-toned. No filler phrases, no 'in the world of gymnastics', no summarising what was just said."
   },
   "internalLinking": {
-    "enabled": false,
+    "enabled": true,
     "source": "sitemap",
-    "sitemapUrl": "",
-    "urls": []
+    "sitemapUrl": "https://gymtastic.cc/sitemap-en.xml",
+    "slugPrefix": ""
   },
   "server": {
     "port": 3099,
     "host": "localhost"
-  },
- 
+  }
 }

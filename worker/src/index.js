@@ -1096,22 +1096,8 @@ function renderHomepage(
 </html>`;
 }
 
-function hreflangLinks(slug, siblings, host) {
-  if (!siblings || siblings.length <= 1) return "";
-  const base = slug.replace(/^[a-z]{2}\//, "");
-  const enSlug = siblings.find((s) => !s.slug.includes("/"))?.slug || base;
-  const lines = siblings.map((s) => {
-    const l = s.slug.includes("/") ? s.slug.split("/")[0] : "en";
-    return `  <link rel="alternate" hreflang="${l}" href="https://${host}/${escapeHtml(s.slug)}">`;
-  });
-  lines.push(
-    `  <link rel="alternate" hreflang="x-default" href="https://${host}/${escapeHtml(enSlug)}">`,
-  );
-  return lines.join("\n");
-}
-
 // ── Individual article page (flagship template) ───────────────────────────────
-function renderPage(page, siteName, siteDesc, gaId, siblings, host) {
+function renderPage(page, siteName, siteDesc, gaId) {
   const lang = langFromSlug(page.slug);
   const year = new Date().getFullYear();
   const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, "gymtastic.cc")}</script>`;
@@ -1131,8 +1117,7 @@ function renderPage(page, siteName, siteDesc, gaId, siblings, host) {
   <meta property="og:description" content="${escapeHtml(page.meta_description || "")}">
   <meta property="og:type" content="article">
   ${page.image_url ? `<meta property="og:image" content="${escapeHtml(page.image_url)}">` : ""}
-  <link rel="canonical" href="https://${host || "gymtastic.cc"}/${escapeHtml(page.slug)}">
-  ${hreflangLinks(page.slug, siblings, host || "gymtastic.cc")}
+  <link rel="canonical" href="/${escapeHtml(page.slug)}">
   ${schemaBlock}
   ${gaSnippet(gaId)}
   <style>
@@ -1233,11 +1218,10 @@ function renderPage(page, siteName, siteDesc, gaId, siblings, host) {
 }
 
 // ── Individual article page (legacy template) ─────────────────────────────────
-function renderLegacyPage(page, siteName, gaId, siblings, host) {
+function renderLegacyPage(page, siteName, gaId) {
   const lang = langFromSlug(page.slug);
   const year = new Date().getFullYear();
   const schemaBlock = `<script type="application/ld+json">${getSchemaForPage(page, "gymtastic.cc")}</script>`;
-  const h = host || "gymtastic.cc";
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -1248,8 +1232,7 @@ function renderLegacyPage(page, siteName, gaId, siblings, host) {
   <meta property="og:title" content="${escapeHtml(page.title)}">
   <meta property="og:description" content="${escapeHtml(page.meta_description || "")}">
   <meta property="og:type" content="article">
-  <link rel="canonical" href="https://${h}/${escapeHtml(page.slug)}">
-  ${hreflangLinks(page.slug, siblings, h)}
+  <link rel="canonical" href="/${escapeHtml(page.slug)}">
   ${schemaBlock}
   ${gaSnippet(gaId)}
   <style>
@@ -1551,7 +1534,6 @@ function renderAdminDashboard(counts, eventsTotal) {
     <a class="btn btn-secondary" href="/admin/new">+ Add page</a>
     <a class="btn btn-secondary" href="/admin/events">Events</a>
     <a class="btn btn-secondary" href="/admin/generate">Generate content</a>
-    <a class="btn btn-secondary" href="/admin/translation-log">Translation costs</a>
   </div>
 </body>
 </html>`;
@@ -1716,7 +1698,7 @@ function renderAdminForm(page) {
       <div>
         <label for="source">Source</label>
         <select id="source" name="source">
-          ${["", "contentclaw", "gymbot", "manual", "haiku-translation"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
+          ${["", "contentclaw", "gymbot", "manual"].map((s) => `<option value="${s}"${(page?.source || "") === s ? " selected" : ""}>${s || "—"}</option>`).join("")}
         </select>
       </div>
     </div>
@@ -1727,7 +1709,6 @@ function renderAdminForm(page) {
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
       <button class="btn" type="submit">${isEdit ? "Save changes" : "Save page"}</button>
       <a class="btn btn-secondary" href="/admin/pages">Cancel</a>
-      ${isEdit && (page?.lang === "en" || !page?.lang) ? `<a class="btn btn-secondary" href="/admin/translate?slug=${encodeURIComponent(page.slug)}" style="margin-left:auto">Translate with Haiku →</a>` : ""}
     </div>
   </form>
 </body>
@@ -1872,102 +1853,6 @@ function renderAdminEventForm(event, error) {
       <a class="btn btn-secondary" href="/admin/events">Cancel</a>
     </div>
   </form>
-</body>
-</html>`;
-}
-
-const LANG_NAMES = {
-  de: "German",
-  fr: "French",
-  es: "Spanish",
-  pt: "Portuguese",
-  it: "Italian",
-  nl: "Dutch",
-  ja: "Japanese",
-  zh: "Chinese",
-};
-
-function renderAdminTranslate(page, error) {
-  const langOptions = Object.entries(LANG_NAMES)
-    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`)
-    .join("");
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Translate page — Admin</title>
-  <style>${adminStyles()}</style>
-</head>
-<body>
-  <div class="nav">
-    <h1>Translate page</h1>
-    <a class="btn btn-ghost" href="/admin/edit?slug=${encodeURIComponent(page.slug)}" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Edit page</a>
-  </div>
-  ${error ? `<div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;border-radius:8px;padding:1rem;margin-bottom:1rem">${escapeHtml(error)}</div>` : ""}
-  <p style="color:#6b7280;font-size:0.875rem;margin-bottom:1.5rem">
-    Translates <strong>${escapeHtml(page.title)}</strong> using Claude Haiku.
-    The result is saved as a <code>draft</code> with <code>template = legacy</code> — review before publishing.
-    Token usage is logged so you can track costs before scaling to multiple languages.
-  </p>
-  <form method="POST" action="/admin/translate">
-    <input type="hidden" name="slug" value="${escapeHtml(page.slug)}">
-    <label for="target_lang">Target language</label>
-    <select id="target_lang" name="target_lang" style="max-width:280px">${langOptions}</select>
-    <p class="hint">Estimated cost: ~$0.005–0.015 per page at Haiku rates ($1/1M input · $5/1M output).</p>
-    <div style="display:flex;gap:0.75rem;margin-top:1rem">
-      <button class="btn" type="submit">Translate with Haiku</button>
-      <a class="btn btn-secondary" href="/admin/edit?slug=${encodeURIComponent(page.slug)}">Cancel</a>
-    </div>
-  </form>
-  <hr style="margin:2rem 0;border:none;border-top:1px solid #e5e7eb">
-  <h2 style="font-size:1rem;margin-bottom:0.75rem">Translation log</h2>
-  <p style="font-size:0.8rem;color:#6b7280"><a href="/admin/translation-log">View full translation cost log →</a></p>
-</body>
-</html>`;
-}
-
-function renderAdminTranslationLog(rows) {
-  const totalCost = rows.reduce((s, r) => s + (r.cost_usd || 0), 0);
-  const tableRows = rows
-    .map(
-      (r) => `<tr>
-      <td style="font-size:0.8rem">${escapeHtml(r.created_at?.slice(0, 16) || "")}</td>
-      <td><a href="/${escapeHtml(r.source_slug)}">${escapeHtml(r.source_slug)}</a></td>
-      <td><a href="/${escapeHtml(r.target_slug)}">${escapeHtml(r.target_slug)}</a></td>
-      <td>${escapeHtml(r.target_lang)}</td>
-      <td style="text-align:right">${(r.input_tokens || 0).toLocaleString()}</td>
-      <td style="text-align:right">${(r.output_tokens || 0).toLocaleString()}</td>
-      <td style="text-align:right">$${(r.cost_usd || 0).toFixed(5)}</td>
-    </tr>`,
-    )
-    .join("");
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Translation log — Admin</title>
-  <style>${adminStyles()} table { font-size:0.85rem; }</style>
-</head>
-<body>
-  <div class="nav">
-    <h1>Translation cost log</h1>
-    <a class="btn btn-ghost" href="/admin" style="margin:0;padding:0.4rem 1rem;font-size:0.85rem">← Dashboard</a>
-  </div>
-  <p style="color:#6b7280;font-size:0.875rem;margin-bottom:1rem">
-    Total spend: <strong>$${totalCost.toFixed(4)}</strong> across ${rows.length} translation${rows.length === 1 ? "" : "s"}.
-    Haiku rates: $1.00/1M input · $5.00/1M output.
-  </p>
-  ${
-    rows.length
-      ? `<table>
-    <thead><tr><th>Date</th><th>Source</th><th>Target</th><th>Lang</th><th style="text-align:right">In tokens</th><th style="text-align:right">Out tokens</th><th style="text-align:right">Cost</th></tr></thead>
-    <tbody>${tableRows}</tbody>
-  </table>`
-      : `<p style="color:#6b7280">No translations yet.</p>`
-  }
 </body>
 </html>`;
 }
@@ -2266,192 +2151,6 @@ export default {
       });
     }
 
-    // Admin — translation cost log
-    if (path === "/admin/translation-log") {
-      const { results } = await env.DB.prepare(
-        "SELECT * FROM translation_log ORDER BY created_at DESC LIMIT 500",
-      ).all();
-      return new Response(renderAdminTranslationLog(results), {
-        headers: {
-          "Content-Type": "text/html; charset=UTF-8",
-          ...securityHeaders(true),
-        },
-      });
-    }
-
-    // Admin — translate page
-    if (path === "/admin/translate") {
-      const slugParam = url.searchParams.get("slug");
-
-      if (request.method !== "POST") {
-        if (!slugParam) return redirect("/admin/pages");
-        const page = await env.DB.prepare(
-          "SELECT slug, title FROM pages WHERE slug = ?",
-        )
-          .bind(slugParam)
-          .first();
-        if (!page) return new Response("Page not found", { status: 404 });
-        return new Response(renderAdminTranslate(page), {
-          headers: {
-            "Content-Type": "text/html; charset=UTF-8",
-            ...securityHeaders(true),
-          },
-        });
-      }
-
-      // POST — run translation via Claude Haiku
-      const formData = await request.formData();
-      const sourceSlug = formData.get("slug")?.trim();
-      const targetLang = formData.get("target_lang")?.trim();
-
-      if (!sourceSlug || !targetLang) {
-        return new Response("Missing fields", { status: 400 });
-      }
-      if (!env.ANTHROPIC_API_KEY) {
-        const page = await env.DB.prepare(
-          "SELECT slug, title FROM pages WHERE slug = ?",
-        )
-          .bind(sourceSlug)
-          .first();
-        return new Response(
-          renderAdminTranslate(page, "ANTHROPIC_API_KEY not configured."),
-          {
-            headers: {
-              "Content-Type": "text/html; charset=UTF-8",
-              ...securityHeaders(true),
-            },
-          },
-        );
-      }
-
-      const sourcePage = await env.DB.prepare(
-        "SELECT * FROM pages WHERE slug = ?",
-      )
-        .bind(sourceSlug)
-        .first();
-      if (!sourcePage)
-        return new Response("Source page not found", { status: 404 });
-
-      // Build target slug: de/gymnastics-scoring (strip any existing lang prefix first)
-      const baseSlug = sourceSlug.replace(/^[a-z]{2}\//, "");
-      const targetSlug = `${targetLang}/${baseSlug}`;
-
-      const existing = await env.DB.prepare(
-        "SELECT slug FROM pages WHERE slug = ?",
-      )
-        .bind(targetSlug)
-        .first();
-      if (existing) {
-        return new Response(
-          renderAdminTranslate(
-            sourcePage,
-            `A page already exists at /${targetSlug}. Edit or delete it first.`,
-          ),
-          {
-            headers: {
-              "Content-Type": "text/html; charset=UTF-8",
-              ...securityHeaders(true),
-            },
-          },
-        );
-      }
-
-      const langName = LANG_NAMES[targetLang] || targetLang;
-      const translateRes = await fetch(
-        "https://api.anthropic.com/v1/messages",
-        {
-          method: "POST",
-          headers: {
-            "x-api-key": env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 8192,
-            system: `You are a professional translator specialising in gymnastics and sports content.
-Translate HTML from English to ${langName}.
-Rules:
-- Preserve all HTML tags exactly — translate only visible text
-- Keep athlete names, competition names, and technical gymnastics terms accurate
-- Match the source tone: direct, opinionated, coach-to-coach
-- Output only the translated HTML with no introduction or explanation`,
-            messages: [
-              {
-                role: "user",
-                content: `Translate the following to ${langName}:\n\n${sourcePage.body_html}`,
-              },
-            ],
-          }),
-        },
-      );
-
-      const translateData = await translateRes.json();
-      if (translateData.type === "error") {
-        return new Response(
-          renderAdminTranslate(
-            sourcePage,
-            `Translation failed: ${translateData.error?.message}`,
-          ),
-          {
-            headers: {
-              "Content-Type": "text/html; charset=UTF-8",
-              ...securityHeaders(true),
-            },
-          },
-        );
-      }
-
-      const translatedHtml =
-        translateData.content?.find((b) => b.type === "text")?.text || "";
-      const inputTokens = translateData.usage?.input_tokens || 0;
-      const outputTokens = translateData.usage?.output_tokens || 0;
-      // Haiku 4.5: $1.00/1M input, $5.00/1M output
-      const costUsd =
-        (inputTokens / 1_000_000) * 1.0 + (outputTokens / 1_000_000) * 5.0;
-
-      // Strip dangerous constructs from translated HTML
-      const safeHtml = translatedHtml
-        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "")
-        .replace(/\bhref\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "")
-        .replace(/\bsrc\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, "");
-
-      await env.DB.prepare(
-        `INSERT INTO pages (slug, title, meta_description, keyword, page_type, body_html, image_url, status, lang, source, template, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 'haiku-translation', 'legacy', datetime('now'))`,
-      )
-        .bind(
-          targetSlug,
-          sourcePage.title,
-          sourcePage.meta_description,
-          sourcePage.keyword,
-          sourcePage.page_type,
-          safeHtml,
-          sourcePage.image_url,
-          targetLang,
-        )
-        .run();
-
-      await env.DB.prepare(
-        `INSERT INTO translation_log (source_slug, target_slug, target_lang, input_tokens, output_tokens, cost_usd)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-        .bind(
-          sourceSlug,
-          targetSlug,
-          targetLang,
-          inputTokens,
-          outputTokens,
-          costUsd,
-        )
-        .run();
-
-      return redirect(
-        `/admin/edit?slug=${encodeURIComponent(targetSlug)}&translated=1`,
-      );
-    }
-
     // Admin — events list
     if (path === "/admin/events") {
       const year =
@@ -2706,30 +2405,12 @@ Rules:
       .bind(slug)
       .first();
 
-    // Language fallback: /de/slug → /slug if no translated page exists yet
-    if (!page && /^[a-z]{2}\//.test(slug)) {
-      const baseSlug = slug.slice(3);
-      page = await env.DB.prepare(
-        "SELECT * FROM pages WHERE slug = ? AND status = 'published'",
-      )
-        .bind(baseSlug)
-        .first();
-    }
-
     if (!page) {
       return new Response("Page not found", {
         status: 404,
         headers: { "Content-Type": "text/plain" },
       });
     }
-
-    // Fetch hreflang siblings (same base slug, all published languages)
-    const baseSlug = page.slug.replace(/^[a-z]{2}\//, "");
-    const { results: siblings } = await env.DB.prepare(
-      "SELECT slug, lang FROM pages WHERE (slug = ? OR slug LIKE ?) AND status = 'published'",
-    )
-      .bind(baseSlug, `%/${baseSlug}`)
-      .all();
 
     ctx.waitUntil(
       env.DB.prepare(
@@ -2741,15 +2422,8 @@ Rules:
 
     const html =
       page.template === "flagship"
-        ? renderPage(
-            page,
-            env.SITE_NAME,
-            env.SITE_DESCRIPTION,
-            GA_ID,
-            siblings,
-            url.host,
-          )
-        : renderLegacyPage(page, env.SITE_NAME, GA_ID, siblings, url.host);
+        ? renderPage(page, env.SITE_NAME, env.SITE_DESCRIPTION, GA_ID)
+        : renderLegacyPage(page, env.SITE_NAME, GA_ID);
 
     return new Response(html, {
       headers: {
