@@ -411,9 +411,69 @@ function typeTag(pageType) {
   return `<span class="tag ${cls}">${label}</span>`;
 }
 
+// ── Event date helpers ────────────────────────────────────────────────────────
+function parseEventDates(datesStr) {
+  const MONTHS = {
+    January: 0,
+    February: 1,
+    March: 2,
+    April: 3,
+    May: 4,
+    June: 5,
+    July: 6,
+    August: 7,
+    September: 8,
+    October: 9,
+    November: 10,
+    December: 11,
+  };
+  const m = datesStr.match(/^(\d+)(?:-(\d+))?\s+(\w+)\s+(\d{4})/);
+  if (!m) return null;
+  const startDay = parseInt(m[1]);
+  const endDay = m[2] ? parseInt(m[2]) : startDay;
+  const monthName = m[3];
+  const year = parseInt(m[4]);
+  const monthIdx = MONTHS[monthName] ?? 0;
+  return {
+    startDay,
+    mon: monthName.slice(0, 3),
+    startDate: new Date(year, monthIdx, startDay),
+    endDate: new Date(year, monthIdx, endDay, 23, 59, 59),
+  };
+}
+
+function eventCard(event, delay) {
+  const parsed = parseEventDates(event.dates);
+  if (!parsed) return "";
+  const now = new Date();
+  const status =
+    now < parsed.startDate
+      ? "upcoming"
+      : now <= parsed.endDate
+        ? "live"
+        : "completed";
+  const tag =
+    status === "live"
+      ? `<span class="tag tag-magenta">&#11044; Live Now</span>`
+      : status === "upcoming"
+        ? `<span class="tag tag-blue">Upcoming</span>`
+        : `<span class="tag tag-outline">Completed</span>`;
+  const dimmed = status === "completed";
+  return `
+        <div class="comp-card fade-in"${delay ? ` style="transition-delay:${delay}"` : ""}>
+          <div class="date-badge"${dimmed ? ` style="background:var(--border)"` : ""}><div class="day"${dimmed ? ` style="color:var(--muted)"` : ""}>${parsed.startDay}</div><div class="mon"${dimmed ? ` style="color:var(--muted)"` : ""}>${parsed.mon}</div></div>
+          <div class="comp-info">
+            <h3 class="comp-title">${escapeHtml(event.title)}</h3>
+            <p class="comp-venue">${escapeHtml(event.city)}</p>
+            ${tag}
+          </div>
+        </div>`;
+}
+
 // ── Homepage ─────────────────────────────────────────────────────────────────
 function renderHomepage(
   pages,
+  events,
   siteName,
   siteDesc,
   gaId,
@@ -530,8 +590,14 @@ function renderHomepage(
   </section>`
       : "";
 
-  // ── Competitions (static)
-  const competitionsSection = `
+  // ── Competitions (from D1 events table)
+  const delays = ["", "0.1s", "0.2s", "0.1s", "0.2s", "0.3s"];
+  const compCards = events
+    .map((e, i) => eventCard(e, delays[i] || ""))
+    .join("\n");
+  const competitionsSection =
+    events.length > 0
+      ? `
   <section class="competitions" id="competitions">
     <div class="container">
       <div class="section-header fade-in">
@@ -542,60 +608,11 @@ function renderHomepage(
         <a href="https://www.gymnastics.sport/site/events/schedule.php" class="btn btn-outline" target="_blank" rel="noopener">Full Calendar</a>
       </div>
       <div class="comp-grid">
-        <div class="comp-card fade-in">
-          <div class="date-badge"><div class="day">12</div><div class="mon">Jul</div></div>
-          <div class="comp-info">
-            <h3 class="comp-title">2026 World Artistic Championships</h3>
-            <p class="comp-venue"><span class="flag">&#127467;&#127479;</span> Paris, France &middot; Bercy Arena</p>
-            <span class="tag tag-magenta">&#11044; Live Now</span>
-          </div>
-        </div>
-        <div class="comp-card fade-in" style="transition-delay:0.1s">
-          <div class="date-badge"><div class="day">19</div><div class="mon">Jul</div></div>
-          <div class="comp-info">
-            <h3 class="comp-title">World Cup &mdash; Stuttgart Grand Prix</h3>
-            <p class="comp-venue"><span class="flag">&#127465;&#127466;</span> Stuttgart, Germany</p>
-            <span class="tag tag-blue">Upcoming</span>
-          </div>
-        </div>
-        <div class="comp-card fade-in" style="transition-delay:0.2s">
-          <div class="date-badge"><div class="day">03</div><div class="mon">Aug</div></div>
-          <div class="comp-info">
-            <h3 class="comp-title">Trampoline World Cup &mdash; Tokyo</h3>
-            <p class="comp-venue"><span class="flag">&#127471;&#127477;</span> Tokyo, Japan &middot; Ariake Arena</p>
-            <span class="tag tag-blue">Upcoming</span>
-          </div>
-        </div>
-        <div class="comp-card fade-in" style="transition-delay:0.1s">
-          <div class="date-badge"><div class="day">08</div><div class="mon">Aug</div></div>
-          <div class="comp-info">
-            <h3 class="comp-title">Pan American Championships 2026</h3>
-            <p class="comp-venue"><span class="flag">&#127463;&#127479;</span> S&atilde;o Paulo, Brazil</p>
-            <span class="tag tag-blue">Upcoming</span>
-          </div>
-        </div>
-        <div class="comp-card fade-in" style="transition-delay:0.2s">
-          <div class="date-badge"><div class="day">20</div><div class="mon">Aug</div></div>
-          <div class="comp-info">
-            <h3 class="comp-title">FIG Rhythmic Grand Prix</h3>
-            <p class="comp-venue"><span class="flag">&#127470;&#127481;</span> Milan, Italy</p>
-            <span class="tag tag-blue">Upcoming</span>
-          </div>
-        </div>
-        <div class="comp-card fade-in" style="transition-delay:0.3s">
-          <div class="date-badge" style="background:var(--border)">
-            <div class="day" style="color:var(--muted)">14</div>
-            <div class="mon" style="color:var(--muted)">Jun</div>
-          </div>
-          <div class="comp-info">
-            <h3 class="comp-title">European Artistic Championships</h3>
-            <p class="comp-venue"><span class="flag">&#127470;&#127481;</span> Rimini, Italy &middot; RDS Stadium</p>
-            <span class="tag tag-outline">Completed</span>
-          </div>
-        </div>
+        ${compCards}
       </div>
     </div>
-  </section>`;
+  </section>`
+      : "";
 
   // ── Disciplines (static)
   const disciplinesSection = `
@@ -2647,9 +2664,16 @@ export default {
 
     // Homepage
     if (path === "/" || path === "") {
-      const { results } = await env.DB.prepare(
-        "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY created_at DESC LIMIT 500",
-      ).all();
+      const [{ results }, { results: events }] = await Promise.all([
+        env.DB.prepare(
+          "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY created_at DESC LIMIT 500",
+        ).all(),
+        env.DB.prepare(
+          "SELECT id, title, city, dates FROM events WHERE year >= ? ORDER BY dates LIMIT 12",
+        )
+          .bind(new Date().getFullYear())
+          .all(),
+      ]);
       ctx.waitUntil(
         env.DB.prepare(
           "INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)",
@@ -2660,6 +2684,7 @@ export default {
       return new Response(
         renderHomepage(
           results,
+          events,
           env.SITE_NAME,
           env.SITE_DESCRIPTION,
           GA_ID,
