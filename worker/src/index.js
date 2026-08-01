@@ -625,8 +625,8 @@ function renderHomepage(
       <div class="section-label fade-in">Athlete Spotlight</div>
       <div class="athlete-grid">
         <div class="athlete-img-wrap fade-in">
-          <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=700&q=80"
-            alt="Elite gymnast in competition leotard performing floor routine">
+          <img src="https://images.unsplash.com/photo-1743076851851-0762b336b56d?w=700&q=80"
+            alt="Elite gymnast performing artistic movement">
           <div class="athlete-img-badge">
             <div class="rank">#1</div>
             <div class="rank-label">World Ranking</div>
@@ -2641,7 +2641,7 @@ export default {
     // Homepage
     if (path === "/" || path === "") {
       const { results } = await env.DB.prepare(
-        "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY page_type, title LIMIT 500",
+        "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY created_at DESC LIMIT 500",
       ).all();
       ctx.waitUntil(
         env.DB.prepare(
