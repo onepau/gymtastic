@@ -764,6 +764,8 @@ function renderHomepage(
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(siteName)}</title>
   <meta name="description" content="${escapeHtml(siteDesc)}">${gscMeta}
@@ -1044,6 +1046,8 @@ function renderPage(page, siteName, siteDesc, gaId) {
 <html lang="${lang}">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(page.title)} | ${escapeHtml(siteName)}</title>
   <meta name="description" content="${escapeHtml(page.meta_description || "")}">
@@ -1160,6 +1164,8 @@ function renderLegacyPage(page, siteName, gaId) {
 <html lang="${lang}">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(page.title)} | ${escapeHtml(siteName)}</title>
   <meta name="description" content="${escapeHtml(page.meta_description || "")}">
@@ -1249,6 +1255,8 @@ function renderDisciplinePage(discipline, pages, siteName, gaId) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(displayName)} &mdash; ${escapeHtml(siteName)}</title>
   <meta name="description" content="All ${escapeHtml(displayName.toLowerCase())} articles on ${escapeHtml(siteName)}: guides, scoring breakdowns, skill analysis, and more.">
@@ -1479,6 +1487,8 @@ function renderAdminLogin(error) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin login</title>
   <style>
@@ -1529,6 +1539,8 @@ function renderAdminDashboard(counts, eventsTotal) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Dashboard</title>
   <style>${adminStyles()}</style>
@@ -1611,6 +1623,8 @@ function renderAdminPages(pages, filters) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Pages</title>
   <style>${adminStyles()}</style>
@@ -1672,6 +1686,8 @@ function renderAdminForm(page) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${isEdit ? "Edit" : "Add"} page — Admin</title>
   <style>${adminStyles()}</style>
@@ -1782,6 +1798,8 @@ function renderAdminEvents(events, year) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Events</title>
   <style>${adminStyles()}
@@ -1837,6 +1855,8 @@ function renderAdminEventForm(event, error) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${isEdit ? "Edit event" : "Add event"} — Admin</title>
   <style>${adminStyles()}</style>
@@ -1919,6 +1939,8 @@ function renderAdminGenerate({ error, success, keyword, pipeline } = {}) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Generate content</title>
   <style>
@@ -2591,6 +2613,19 @@ export default {
         headers: {
           "Content-Type": "application/xml",
           "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+
+    // favicon
+    if (path === "/favicon.ico" || path === "/favicon.png") {
+      const b64 =
+        "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";
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      return new Response(bytes, {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=86400",
         },
       });
     }
