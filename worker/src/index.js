@@ -490,40 +490,6 @@ function renderHomepage(
     </div>
   </section>`;
 
-  // ── Ticker (static scores, decorative)
-  const ticker = `
-  <div class="ticker" role="marquee" aria-label="Live scores" aria-live="off">
-    <div class="ticker-track">
-      <div class="ticker-item"><span class="flag">&#127482;&#127480;</span> Simone Biles &middot; Floor &middot; <span class="score">15.300</span> <span class="tag tag-gold">GOLD</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127471;&#127477;</span> Shinnosuke Oka &middot; Pommel &middot; <span class="score">14.866</span> <span class="tag tag-blue">SILVER</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127468;&#127463;</span> Jessica Gadirova &middot; Beam &middot; <span class="score">14.200</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127464;&#127475;</span> Zhang Boheng &middot; HBar &middot; <span class="score">15.066</span> <span class="tag tag-magenta">LIVE</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127463;&#127479;</span> Rebeca Andrade &middot; Vault &middot; <span class="score">14.900</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127462;&#127482;</span> Georgia Godwin &middot; UBars &middot; <span class="score">13.966</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127467;&#127479;</span> M&eacute;lanie de Jesus dos Santos &middot; Rhythmic &middot; <span class="score">34.250</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127482;&#127480;</span> Simone Biles &middot; Floor &middot; <span class="score">15.300</span> <span class="tag tag-gold">GOLD</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127471;&#127477;</span> Shinnosuke Oka &middot; Pommel &middot; <span class="score">14.866</span> <span class="tag tag-blue">SILVER</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127468;&#127463;</span> Jessica Gadirova &middot; Beam &middot; <span class="score">14.200</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127464;&#127475;</span> Zhang Boheng &middot; HBar &middot; <span class="score">15.066</span> <span class="tag tag-magenta">LIVE</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127463;&#127479;</span> Rebeca Andrade &middot; Vault &middot; <span class="score">14.900</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127462;&#127482;</span> Georgia Godwin &middot; UBars &middot; <span class="score">13.966</span></div>
-      <div class="ticker-item ticker-sep">|</div>
-      <div class="ticker-item"><span class="flag">&#127467;&#127479;</span> M&eacute;lanie de Jesus dos Santos &middot; Rhythmic &middot; <span class="score">34.250</span></div>
-    </div>
-  </div>`;
-
   // ── News section (first 3 pages from D1)
   const featuredCardHtml = featuredPage
     ? `<article class="card card-featured fade-in">
@@ -820,23 +786,6 @@ function renderHomepage(
   <style>
     ${BASE_CSS}
 
-    /* ── TICKER ── */
-    .ticker { background: var(--gold); color: #000; padding: 10px 0; overflow: hidden; }
-    .ticker-track {
-      display: flex;
-      gap: 64px;
-      width: max-content;
-      animation: ticker 30s linear infinite;
-    }
-    .ticker-track:hover { animation-play-state: paused; }
-    @keyframes ticker {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    .ticker-item { display: flex; align-items: center; gap: 12px; white-space: nowrap; font-size: 13px; font-weight: 700; }
-    .ticker-item .flag { font-size: 16px; }
-    .ticker-item .score { font-family: 'Bebas Neue', sans-serif; font-size: 18px; }
-    .ticker-sep { opacity: 0.4; }
 
     /* ── HERO ── */
     .hero {
@@ -1081,7 +1030,6 @@ function renderHomepage(
 </head>
 <body>
   ${navHtml(siteName)}
-  ${ticker}
   ${heroSection}
   ${newsSection}
   ${competitionsSection}
