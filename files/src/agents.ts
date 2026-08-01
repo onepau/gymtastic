@@ -16,7 +16,7 @@ const searchVectorStore: ClientTool = {
 const gymnasticsWebSearch: ServerTool = {
   type: "web_search_20260209",
   name: "web_search",
-  max_uses: 10,
+  max_uses: 5,
 };
 
 // --- 0 Orchestrator agent ---
@@ -43,9 +43,10 @@ Use the vector store search tool to check for cached facts about the event or at
 
 export function runOrchestrator(userInput: string) {
   return runAgent(userInput, {
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     system: ORCHESTRATOR_INSTRUCTIONS,
     tools: [searchVectorStore],
+    maxTurns: 4,
   });
 }
 
@@ -232,9 +233,10 @@ ${articleHtml}
 
 export function runEditorialQA(articleHtml: string) {
   return runAgent(editorialQaInstructions(articleHtml), {
-    model: "claude-opus-4-8",
+    model: "claude-sonnet-4-6",
     system:
       "You are a rigorous editorial QA reviewer. Follow the instructions in the user message exactly.",
+    maxTurns: 4,
   });
 }
 

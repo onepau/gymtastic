@@ -27,8 +27,10 @@ function parseArticleJson(raw: string) {
 export async function runWorkflow(workflow: WorkflowInput) {
   const input = workflow.input_as_text;
 
-  const orchestratorContext = await runOrchestrator(input);
-  const { category: eventType } = await classifyEventType(input);
+  const [orchestratorContext, { category: eventType }] = await Promise.all([
+    runOrchestrator(input),
+    classifyEventType(input),
+  ]);
 
   let researchContext: string;
 
@@ -67,7 +69,9 @@ export async function runWorkflow(workflow: WorkflowInput) {
   }
 
   const qaOutput = await runEditorialQA(article.body_html ?? articleRaw);
-  const approved = /\bApproved\b/i.test(qaOutput);
+  const approved =
+    /Conclusion[^]*?\bApproved\b/i.test(qaOutput) &&
+    !/Conclusion[^]*?\bFeedback\b/i.test(qaOutput);
 
   return {
     output_text: qaOutput,
