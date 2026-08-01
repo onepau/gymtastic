@@ -208,17 +208,6 @@ const BASE_CSS = `
   .nav-links a:hover { color: var(--text); }
   .nav-links a:hover::after { width: 100%; }
   .nav-right { display: flex; align-items: center; gap: 16px; }
-  .live-badge {
-    background: var(--magenta);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    padding: 4px 10px;
-    border-radius: 4px;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
   @media (max-width: 768px) { .nav-links, .nav-right { display: none; } }
 
   /* ── FOOTER ── */
@@ -306,9 +295,6 @@ function navHtml(siteName) {
         <li><a href="/#disciplines">Disciplines</a></li>
         <li><a href="/#facts">Facts</a></li>
       </ul>
-      <div class="nav-right">
-        <span class="live-badge">&#11044; LIVE</span>
-      </div>
     </div>
   </nav>`;
 }
