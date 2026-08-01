@@ -390,7 +390,7 @@ function cardImg(imageUrl, alt, extraClass = "") {
     (alt.charCodeAt(0) * 37 + alt.charCodeAt(1 % alt.length) * 13) % 360;
   return `<div class="card-img${extraClass ? " " + extraClass : ""} card-img-placeholder"
     style="background: linear-gradient(135deg,hsl(${hue},60%,15%),hsl(${(hue + 60) % 360},60%,20%));">
-    <span class="placeholder-icon">&#127948;</span>
+    <span class="placeholder-icon">&#129336;</span>
   </div>`;
 }
 
