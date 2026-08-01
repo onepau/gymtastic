@@ -90,7 +90,7 @@ export function runCompetitionResults(context: string) {
   return runAgent(context, {
     model: "claude-sonnet-4-6",
     system: COMPETITION_RESULTS_INSTRUCTIONS,
-    tools: [searchVectorStore],
+    tools: [searchVectorStore, gymnasticsWebSearch],
   });
 }
 
