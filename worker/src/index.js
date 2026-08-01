@@ -1712,8 +1712,15 @@ function renderAdminForm(page) {
 
     <label for="image_url">Featured image URL</label>
     <input type="url" id="image_url" name="image_url" value="${val("image_url")}"
-      placeholder="https://example.com/image.jpg">
-    <p class="hint">Link to an image hosted externally (e.g. Cloudflare R2, Unsplash, Imgur).</p>
+      placeholder="https://images.unsplash.com/photo-…">
+    <p class="hint" id="image_url_hint">Use the direct image URL, not the page URL. On Unsplash: right-click the photo → <strong>Copy image address</strong> to get an <code>images.unsplash.com</code> URL.</p>
+    <p class="hint" id="image_url_warn" style="display:none;color:#b91c1c">⚠️ This looks like an Unsplash page URL, not an image URL. Right-click the photo on Unsplash and choose <strong>Copy image address</strong> instead.</p>
+    <script>
+      document.getElementById('image_url').addEventListener('input', function() {
+        var warn = document.getElementById('image_url_warn');
+        warn.style.display = /^https:\/\/unsplash\.com\/photos\//.test(this.value) ? 'block' : 'none';
+      });
+    </script>
 
     <label for="page_type">Page type</label>
     <select id="page_type" name="page_type">${typeOptions}</select>
