@@ -1,6 +1,7 @@
 import { classifyEventType, classifyAthleteRelated } from "./classify";
 import {
   runOrchestrator,
+  runEventDiscovery,
   runCompetitionResults,
   runAthleteData,
   runArticleWriter,
@@ -35,11 +36,14 @@ export async function runWorkflow(workflow: WorkflowInput) {
   let researchContext: string;
 
   if (eventType === "Specific event") {
+    const eventData = await runEventDiscovery(input);
+    vectorUpsert("competition", `event:${input}`, eventData).catch(() => {});
+
     const resultsOutput = await runCompetitionResults(
-      `${input}\n\nOrchestrator context:\n${orchestratorContext}`,
+      `${input}\n\nOrchestrator context:\n${orchestratorContext}\n\nEvent metadata from FIG:\n${eventData}`,
     );
     vectorUpsert("competition", input, resultsOutput).catch(() => {});
-    researchContext = `Competition results:\n${resultsOutput}`;
+    researchContext = `Event metadata:\n${eventData}\n\nCompetition results:\n${resultsOutput}`;
   } else {
     const { category: athleteCheck } = await classifyAthleteRelated(input);
     if (athleteCheck === "athlete_related") {

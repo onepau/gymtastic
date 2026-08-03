@@ -50,6 +50,42 @@ export function runOrchestrator(userInput: string) {
   });
 }
 
+// --- 01 Event discovery agent ---
+
+const EVENT_DISCOVERY_INSTRUCTIONS = `You are an event discovery agent for Gymtastic. Given a gymnastics topic or query, your job is to locate the matching FIG-sanctioned event on gymnastics.sport and return its official metadata.
+
+STEPS
+1. Search the vector store first — if the event is already cached, return it immediately without web searching.
+2. If not cached, search gymnastics.sport (https://www.gymnastics.sport/site/events/search.php?type=sport) and any other authoritative FIG sources to find the event.
+3. Extract: event ID, official title, host city, dates, and disciplines.
+4. Return ONLY a JSON object in the shape below — no prose, no markdown fences.
+
+OUTPUT FORMAT
+{
+  "id": "[FIG event ID]",
+  "title": "[official event title]",
+  "city": "[host city]",
+  "dates": "[date range as published]",
+  "disciplines": ["discipline1", "..."],
+  "source_url": "[URL where data was found]"
+}
+
+If you cannot locate the event after searching, return: {"error": "Event not found"}
+
+CONSTRAINTS
+- Only return data from official FIG or national federation sources.
+- Do not invent or estimate any field — omit it if not found.
+- Do not include any text outside the JSON object.`;
+
+export function runEventDiscovery(topic: string) {
+  return runAgent(topic, {
+    model: "claude-sonnet-4-6",
+    system: EVENT_DISCOVERY_INSTRUCTIONS,
+    tools: [searchVectorStore, gymnasticsWebSearch],
+    maxTurns: 6,
+  });
+}
+
 // --- 02 Competition results and data extraction agent ---
 
 const COMPETITION_RESULTS_INSTRUCTIONS = `You are a **competition results extraction agent**. Given the inputs provided (uploaded results, live event site content, or knowledge base search results), you must:
