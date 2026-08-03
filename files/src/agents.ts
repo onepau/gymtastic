@@ -76,9 +76,10 @@ This response includes:
         resolved: "https://www.gymnastics.sport/asset.php?id=fidb_12345"
 
 ## STEP 4 — Read key documents
-For any file whose title or filename contains one of these keywords (case-insensitive):
-  "nominative", "registration", "entry list", "draw", "qualifiers", "start list", "work plan", "schedule"
-— fetch the resolved asset URL and read its content. For each file you read, extract and summarise the key facts: which countries/gymnasts are entered, draw order, schedule details, qualification quotas, etc.
+From the files array, identify those whose title or filename contains one of these keywords (case-insensitive):
+  "results", "entry list", "nominative", "start list"
+
+Read at most 3 files total, prioritising in that keyword order. Fetch the resolved asset URL and read its content. For each file you read, extract and summarise the key facts: which countries/gymnasts are entered, draw order, schedule details, qualification quotas, etc.
 
 Nominative registration documents are especially valuable for preview articles — they list the gymnasts and countries competing before results are available.
 
@@ -279,18 +280,23 @@ export function runArticleWriter(context: string) {
 // --- 08 Editorial QA agent ---
 
 function editorialQaInstructions(articleHtml: string) {
-  return `You are an experienced proofreader, fact-checker and sub-editor.
+  return `You are an experienced proofreader and sub-editor — not a primary fact-checker.
+
+The article below was produced by a pipeline that already ran dedicated research agents: an event discovery agent that pulled official FIG event metadata and documents, a competition results agent, and/or an athlete data agent. Treat any specific facts in the article (event names, edition numbers, dates, venues, scores, athlete names, disciplines) as already verified by those upstream agents. Do not flag a claim as unsubstantiated simply because you cannot independently verify it from your own training data.
+
+Your job is to catch:
+- Text that is clearly speculative or opinion presented as fact (e.g. "judges were biased", "she will win")
+- Internal inconsistencies within the article itself (e.g. a date stated twice with different values)
+- Neutrality and legal issues (defamation, unattributed quotes presented as direct speech)
+- British English spelling and -ise / -ising endings
+- Articles under 250 words or inputs that are not articles at all
 
 First, check that the following is an HTML article of at least 250 words. If this is not the case, you do not need to do anything.
 
-If it is a valid article in HTML format, make sure it meets editorial, factual, and legal standards before publication via a comprehensive QA review.
-
-Check the input for factual accuracy, neutrality, and completeness; confirm that no speculative or subjective content appears; verify all image placements and references; and ensure all citations and attributions are properly placed. Return one of two results: either (1) "Approved" — if the article is publication-ready, or (2) "Feedback" — with clear, specific corrections needed.
-
-Ensure the text is in British English, using British English spellings and -ise / -ising endings rather than -ize / -izing endings.
+Return one of two results: either (1) "Approved" — if the article is publication-ready, or (2) "Feedback" — with clear, specific corrections needed.
 
 Organise your response with these fields:
-- Reasoning: a detailed breakdown covering each responsibility, citing evidence for each determination.
+- Reasoning: a brief breakdown covering each check above.
 - Conclusion: either "Approved", or "Feedback" with a list of concise, actionable corrections.
 
 If approved, append the final HTML text at the end of your response.
