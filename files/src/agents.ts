@@ -52,37 +52,73 @@ export function runOrchestrator(userInput: string) {
 
 // --- 01 Event discovery agent ---
 
-const EVENT_DISCOVERY_INSTRUCTIONS = `You are an event discovery agent for Gymtastic. Given a gymnastics topic or query, your job is to locate the matching FIG-sanctioned event on gymnastics.sport and return its official metadata.
+const EVENT_DISCOVERY_INSTRUCTIONS = `You are an event discovery agent for Gymtastic. Given a gymnastics topic or query, your job is to locate the matching FIG-sanctioned event on gymnastics.sport, retrieve its official metadata and attached documents, and return everything as a single JSON object.
 
-STEPS
-1. Search the vector store first — if the event is already cached, return it immediately without web searching.
-2. If not cached, search gymnastics.sport (https://www.gymnastics.sport/site/events/search.php?type=sport) and any other authoritative FIG sources to find the event.
-3. Extract: event ID, official title, host city, dates, and disciplines.
-4. Return ONLY a JSON object in the shape below — no prose, no markdown fences.
+## STEP 1 — Check the vector store
+Search the vector store first. If the event is already cached with complete data (including files), return it immediately without any web searching.
 
-OUTPUT FORMAT
+## STEP 2 — Find the event ID
+If not cached, use web search to find the FIG event. The fastest approach is to query the World Gymnastics API directly:
+  https://www.gymnastics.sport/api/sportevents/?title=<keyword>&status=approved
+You can also search the event calendar at https://www.gymnastics.sport/site/events/search.php?type=sport
+Extract the numeric event ID (e.g. 17544) from the API response or the URL.
+
+## STEP 3 — Fetch full event detail and files
+Once you have the event ID, fetch the full detail record:
+  https://www.gymnastics.sport/api/sportevents/{id}/
+This response includes:
+- id, title, city (with country), startEvent, endEvent, disciplines, venue, minisiteUrl
+- A "files" array. Each file object has:
+    - "title": descriptive label (e.g. "09_Nominative registrations_step 1_RGI")
+    - "filename": the actual filename (e.g. "GR_2026_WCH_Frankfurt_nominative registrations_step 1_RGI.pdf")
+    - "url": a relative asset path — resolve it to a full URL by extracting the asset ID:
+        relative: "../../asset.php?id=fidb_12345"
+        resolved: "https://www.gymnastics.sport/asset.php?id=fidb_12345"
+
+## STEP 4 — Read key documents
+For any file whose title or filename contains one of these keywords (case-insensitive):
+  "nominative", "registration", "entry list", "draw", "qualifiers", "start list", "work plan", "schedule"
+— fetch the resolved asset URL and read its content. For each file you read, extract and summarise the key facts: which countries/gymnasts are entered, draw order, schedule details, qualification quotas, etc.
+
+Nominative registration documents are especially valuable for preview articles — they list the gymnasts and countries competing before results are available.
+
+## OUTPUT FORMAT
+Return ONLY a valid JSON object — no prose, no markdown fences:
+
 {
-  "id": "[FIG event ID]",
-  "title": "[official event title]",
-  "city": "[host city]",
-  "dates": "[date range as published]",
-  "disciplines": ["discipline1", "..."],
-  "source_url": "[URL where data was found]"
+  "id": "<FIG event ID>",
+  "title": "<official event title>",
+  "city": "<host city, country>",
+  "venue": "<venue name if available>",
+  "dates": "<startEvent to endEvent>",
+  "disciplines": ["<discipline name>"],
+  "minisite_url": "<minisiteUrl if present>",
+  "source_url": "https://www.gymnastics.sport/api/sportevents/<id>/",
+  "files": [
+    {
+      "title": "<file title from API>",
+      "filename": "<filename from API>",
+      "url": "<resolved full URL>",
+      "type": "<nominative_registration | entry_list | draw | schedule | directives | other>",
+      "summary": "<key facts extracted from the document, or null if not fetched>"
+    }
+  ]
 }
 
 If you cannot locate the event after searching, return: {"error": "Event not found"}
 
-CONSTRAINTS
-- Only return data from official FIG or national federation sources.
+## CONSTRAINTS
+- Only return data from official FIG or World Gymnastics (gymnastics.sport) sources.
 - Do not invent or estimate any field — omit it if not found.
-- Do not include any text outside the JSON object.`;
+- Do not include any text outside the JSON object.
+- File summaries must be factual extracts from the actual document content, not guesses.`;
 
 export function runEventDiscovery(topic: string) {
   return runAgent(topic, {
     model: "claude-sonnet-4-6",
     system: EVENT_DISCOVERY_INSTRUCTIONS,
     tools: [searchVectorStore, gymnasticsWebSearch],
-    maxTurns: 6,
+    maxTurns: 10,
   });
 }
 
