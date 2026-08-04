@@ -79,12 +79,12 @@ export async function runWorkflow(workflow: WorkflowInput) {
 
   return {
     output_text: qaOutput,
-    ...(approved && article.title
+    qa_approved: approved,
+    ...(article.title
       ? {
           title: article.title,
           meta_description: article.meta_description ?? "",
           body_html: article.body_html ?? "",
-          qa_approved: true,
         }
       : {}),
   };
