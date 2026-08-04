@@ -795,9 +795,9 @@ function renderHomepage(
     /* ── HERO ── */
     .hero {
       position: relative;
-      min-height: 88vh;
+      min-height: 60vh;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       overflow: hidden;
       padding-bottom: 80px;
     }
@@ -821,7 +821,7 @@ function renderHomepage(
     .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
     .hero-stat {
       position: absolute;
-      right: 80px; bottom: 80px;
+      right: 80px; top: 50%; transform: translateY(-50%);
       z-index: 1;
       text-align: center;
       display: none;
@@ -842,7 +842,7 @@ function renderHomepage(
     }
 
     /* ── NEWS CARDS ── */
-    .news { padding: 80px 0; }
+    .news { padding: 40px 0 80px; }
     .news-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1631,6 +1631,7 @@ function renderAdminPages(pages, filters) {
         ${p.status !== "published" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="published"><button type="submit" style="background:none;border:none;color:#16a34a;cursor:pointer;font-size:0.8rem;padding:0">Publish</button></form>` : ""}
         ${p.status !== "draft" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="draft"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Draft</button></form>` : ""}
         ${p.status !== "hidden" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="hidden"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Hide</button></form>` : ""}
+        <form method="POST" action="/admin/pages/feature" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="featured" value="${p.featured ? "0" : "1"}"><button type="submit" style="background:none;border:none;cursor:pointer;font-size:0.8rem;padding:0;color:${p.featured ? "#b45309" : "#9ca3af"}">${p.featured ? "★ Unpin" : "☆ Pin"}</button></form>
       </td>
     </tr>`,
     )
@@ -2182,7 +2183,7 @@ export default {
       const source = url.searchParams.get("source") || "";
       const lang = url.searchParams.get("lang") || "";
       let query =
-        "SELECT slug, title, page_type, status, source, lang FROM pages";
+        "SELECT slug, title, page_type, status, source, lang, featured FROM pages";
       const conditions = [];
       const binds = [];
       if (status) {
@@ -2224,6 +2225,27 @@ export default {
         "UPDATE pages SET status = ?, updated_at = datetime('now') WHERE slug = ?",
       )
         .bind(status, slug)
+        .run();
+      const ref = request.headers.get("Referer") || "/admin/pages";
+      return redirect(ref);
+    }
+
+    // Admin — pin/unpin article to homepage flagship slot
+    if (path === "/admin/pages/feature" && request.method === "POST") {
+      const formData = await request.formData();
+      const slug = formData.get("slug")?.trim();
+      const featured = formData.get("featured") === "1" ? 1 : 0;
+      if (!slug) return new Response("Invalid request", { status: 400 });
+      if (featured) {
+        // Unpin all others first so only one article holds the flagship slot
+        await env.DB.prepare(
+          "UPDATE pages SET featured = 0 WHERE featured = 1",
+        ).run();
+      }
+      await env.DB.prepare(
+        "UPDATE pages SET featured = ?, updated_at = datetime('now') WHERE slug = ?",
+      )
+        .bind(featured, slug)
         .run();
       const ref = request.headers.get("Referer") || "/admin/pages";
       return redirect(ref);
@@ -2666,7 +2688,7 @@ export default {
     if (path === "/" || path === "") {
       const [{ results }, { results: events }] = await Promise.all([
         env.DB.prepare(
-          "SELECT slug, title, page_type, meta_description, image_url FROM pages WHERE status = 'published' ORDER BY created_at DESC LIMIT 500",
+          "SELECT slug, title, page_type, meta_description, image_url, featured FROM pages WHERE status = 'published' ORDER BY featured DESC, created_at DESC LIMIT 500",
         ).all(),
         env.DB.prepare(
           "SELECT id, title, city, dates FROM events WHERE year >= ? ORDER BY dates LIMIT 12",
