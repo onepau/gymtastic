@@ -614,27 +614,6 @@ function renderHomepage(
   </section>`
       : "";
 
-  // ── Disciplines (static)
-  const disciplinesSection = `
-  <section class="disciplines" id="disciplines">
-    <div class="container">
-      <div class="section-header fade-in">
-        <div>
-          <div class="section-label">Explore</div>
-          <h2 class="section-title">Gymnastics Disciplines</h2>
-        </div>
-      </div>
-      <div class="disc-scroll fade-in">
-        <a href="/discipline/artistic-gymnastics" class="disc-tile"><div class="disc-icon">&#129336;</div><div class="disc-name">Artistic</div><div class="disc-sub">Men's &amp; Women's</div></a>
-        <a href="/discipline/rhythmic-gymnastics" class="disc-tile"><div class="disc-icon">&#127992;</div><div class="disc-name">Rhythmic</div><div class="disc-sub">Hoops &middot; Ribbons &middot; Balls</div></a>
-        <a href="/discipline/trampoline" class="disc-tile"><div class="disc-icon">&#129385;</div><div class="disc-name">Trampoline</div><div class="disc-sub">DMT &middot; Synchronised</div></a>
-        <a href="/discipline/acrobatic-gymnastics" class="disc-tile"><div class="disc-icon">&#129340;</div><div class="disc-name">Acrobatic</div><div class="disc-sub">Pairs &middot; Groups</div></a>
-        <a href="/discipline/aerobic-gymnastics" class="disc-tile"><div class="disc-icon">&#128168;</div><div class="disc-name">Aerobic</div><div class="disc-sub">Individual &middot; Mixed</div></a>
-        <a href="/discipline/parkour" class="disc-tile"><div class="disc-icon">&#127939;</div><div class="disc-name">Parkour</div><div class="disc-sub">Speed &middot; Freestyle</div></a>
-      </div>
-    </div>
-  </section>`;
-
   // ── Athlete spotlight (static)
   const athleteSection = `
   <section class="athlete" id="athlete">
@@ -914,25 +893,6 @@ function renderHomepage(
     .comp-venue { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
     .comp-venue .flag { margin-right: 6px; }
 
-    /* ── DISCIPLINES ── */
-    .disciplines { padding: 80px 0; }
-    .disc-scroll {
-      display: flex; gap: 20px;
-      overflow-x: auto; padding-bottom: 16px;
-      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-    }
-    .disc-tile {
-      min-width: 180px; border-radius: var(--radius);
-      padding: 28px 20px; text-align: center;
-      cursor: pointer; text-decoration: none;
-      border: 1px solid var(--border);
-      transition: all 0.2s; background: var(--card);
-    }
-    .disc-tile:hover { border-color: var(--gold); transform: translateY(-4px); }
-    .disc-icon { font-size: 40px; margin-bottom: 12px; }
-    .disc-name { font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-    .disc-sub { font-size: 12px; color: var(--muted); }
-
     /* ── ATHLETE SPOTLIGHT ── */
     .athlete { padding: 80px 0; background: var(--deep); }
     .athlete-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
@@ -1038,7 +998,6 @@ function renderHomepage(
   ${heroSection}
   ${newsSection}
   ${competitionsSection}
-  ${disciplinesSection}
   ${athleteSection}
   ${factsSection}
   ${allContentHtml}
