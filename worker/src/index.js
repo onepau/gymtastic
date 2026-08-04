@@ -480,6 +480,7 @@ function renderHomepage(
   heroImageUrl,
   heroText,
   gscVerification,
+  spotlightedPage,
 ) {
   const year = new Date().getFullYear();
   const gscMeta = gscVerification
@@ -614,37 +615,26 @@ function renderHomepage(
   </section>`
       : "";
 
-  // ── Athlete spotlight (static)
-  const athleteSection = `
+  // ── Athlete spotlight (CMS-driven)
+  const athleteSection = spotlightedPage
+    ? `
   <section class="athlete" id="athlete">
     <div class="container">
       <div class="section-label fade-in">Athlete Spotlight</div>
       <div class="athlete-grid">
         <div class="athlete-img-wrap fade-in">
-          <img src="https://images.unsplash.com/photo-1743076851851-0762b336b56d?w=700&q=80"
-            alt="Elite gymnast performing artistic movement">
-          <div class="athlete-img-badge">
-            <div class="rank">#1</div>
-            <div class="rank-label">World Ranking</div>
-          </div>
+          ${spotlightedPage.image_url ? `<img src="${escapeHtml(spotlightedPage.image_url)}" alt="${escapeHtml(spotlightedPage.title)}" loading="lazy">` : ""}
         </div>
         <div class="fade-in" style="transition-delay:0.15s">
           <div class="section-label">Featured</div>
-          <h2 class="athlete-name">Simone<br>Biles</h2>
-          <p class="athlete-country">&#127482;&#127480; United States &middot; Artistic Gymnastics &middot; Age 29</p>
-          <blockquote class="athlete-quote">
-            &ldquo;I&rsquo;m not the next Usain Bolt or Michael Phelps &mdash; I&rsquo;m the first Simone Biles.&rdquo;
-          </blockquote>
-          <div class="stats-row">
-            <div class="stat-block"><div class="stat-num" data-count="37">0</div><div class="stat-label">World Medals</div></div>
-            <div class="stat-block"><div class="stat-num" data-count="7">0</div><div class="stat-label">Olympic Golds</div></div>
-            <div class="stat-block"><div class="stat-num" data-count="8">0</div><div class="stat-label">Named Skills</div></div>
-          </div>
-          <a href="/#all-content" class="btn btn-gold">Explore Articles &rarr;</a>
+          <h2 class="athlete-name">${escapeHtml(spotlightedPage.title)}</h2>
+          ${spotlightedPage.meta_description ? `<p class="athlete-country">${escapeHtml(spotlightedPage.meta_description)}</p>` : ""}
+          <a href="/${escapeHtml(spotlightedPage.slug)}" class="btn btn-gold">Read Article &rarr;</a>
         </div>
       </div>
     </div>
-  </section>`;
+  </section>`
+    : "";
 
   // ── Facts (static)
   const factsSection = `
@@ -1591,6 +1581,7 @@ function renderAdminPages(pages, filters) {
         ${p.status !== "draft" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="draft"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Draft</button></form>` : ""}
         ${p.status !== "hidden" ? `<form method="POST" action="/admin/pages/status" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="status" value="hidden"><button type="submit" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem;padding:0">Hide</button></form>` : ""}
         <form method="POST" action="/admin/pages/feature" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="featured" value="${p.featured ? "0" : "1"}"><button type="submit" style="background:none;border:none;cursor:pointer;font-size:0.8rem;padding:0;color:${p.featured ? "#b45309" : "#9ca3af"}">${p.featured ? "★ Unpin" : "☆ Pin"}</button></form>
+        <form method="POST" action="/admin/pages/spotlight" style="display:inline;margin-left:0.5rem"><input type="hidden" name="slug" value="${escapeHtml(p.slug)}"><input type="hidden" name="spotlighted" value="${p.spotlighted ? "0" : "1"}"><button type="submit" style="background:none;border:none;cursor:pointer;font-size:0.8rem;padding:0;color:${p.spotlighted ? "#7c3aed" : "#9ca3af"}">${p.spotlighted ? "● Spotlight" : "○ Spotlight"}</button></form>
       </td>
     </tr>`,
     )
@@ -2142,7 +2133,7 @@ export default {
       const source = url.searchParams.get("source") || "";
       const lang = url.searchParams.get("lang") || "";
       let query =
-        "SELECT slug, title, page_type, status, source, lang, featured FROM pages";
+        "SELECT slug, title, page_type, status, source, lang, featured, spotlighted FROM pages";
       const conditions = [];
       const binds = [];
       if (status) {
@@ -2205,6 +2196,26 @@ export default {
         "UPDATE pages SET featured = ?, updated_at = datetime('now') WHERE slug = ?",
       )
         .bind(featured, slug)
+        .run();
+      const ref = request.headers.get("Referer") || "/admin/pages";
+      return redirect(ref);
+    }
+
+    if (path === "/admin/pages/spotlight" && request.method === "POST") {
+      const formData = await request.formData();
+      const slug = formData.get("slug")?.trim();
+      const spotlighted = formData.get("spotlighted") === "1" ? 1 : 0;
+      if (!slug) return new Response("Invalid request", { status: 400 });
+      if (spotlighted) {
+        // Remove spotlight from all others so only one article holds the slot
+        await env.DB.prepare(
+          "UPDATE pages SET spotlighted = 0 WHERE spotlighted = 1",
+        ).run();
+      }
+      await env.DB.prepare(
+        "UPDATE pages SET spotlighted = ?, updated_at = datetime('now') WHERE slug = ?",
+      )
+        .bind(spotlighted, slug)
         .run();
       const ref = request.headers.get("Referer") || "/admin/pages";
       return redirect(ref);
@@ -2645,16 +2656,21 @@ export default {
 
     // Homepage
     if (path === "/" || path === "") {
-      const [{ results }, { results: events }] = await Promise.all([
-        env.DB.prepare(
-          "SELECT slug, title, page_type, meta_description, image_url, featured FROM pages WHERE status = 'published' ORDER BY featured DESC, created_at DESC LIMIT 500",
-        ).all(),
-        env.DB.prepare(
-          "SELECT id, title, city, dates FROM events WHERE year >= ? ORDER BY dates LIMIT 12",
-        )
-          .bind(new Date().getFullYear())
-          .all(),
-      ]);
+      const [{ results }, { results: events }, { results: spotlightResults }] =
+        await Promise.all([
+          env.DB.prepare(
+            "SELECT slug, title, page_type, meta_description, image_url, featured FROM pages WHERE status = 'published' ORDER BY featured DESC, created_at DESC LIMIT 500",
+          ).all(),
+          env.DB.prepare(
+            "SELECT id, title, city, dates FROM events WHERE year >= ? ORDER BY dates LIMIT 12",
+          )
+            .bind(new Date().getFullYear())
+            .all(),
+          env.DB.prepare(
+            "SELECT slug, title, meta_description, image_url FROM pages WHERE spotlighted = 1 AND status = 'published' LIMIT 1",
+          ).all(),
+        ]);
+      const spotlightedPage = spotlightResults?.[0] ?? null;
       ctx.waitUntil(
         env.DB.prepare(
           "INSERT INTO analytics (page_slug, user_agent, country, is_bot) VALUES (?, ?, ?, ?)",
@@ -2672,6 +2688,7 @@ export default {
           HERO_IMAGE_URL,
           HERO_TEXT,
           GSC_VERIFICATION,
+          spotlightedPage,
         ),
         {
           headers: {
