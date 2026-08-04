@@ -52,6 +52,8 @@ export async function runAgent(
     { role: "user", content: userContent },
   ];
 
+  let containerId: string | undefined;
+
   for (let turn = 0; turn < (opts.maxTurns ?? 12); turn++) {
     const response = await client.messages.create({
       model: opts.model,
@@ -59,7 +61,17 @@ export async function runAgent(
       system: opts.system,
       messages,
       ...(toolSchemas.length ? { tools: toolSchemas as Anthropic.Tool[] } : {}),
-    });
+      // Required when server tools (e.g. web_search) have pending tool uses across pause_turn iterations.
+      ...(containerId ? { container: containerId } : {}),
+    } as Parameters<typeof client.messages.create>[0]);
+
+    // Track container_id from server-tool responses so subsequent calls can resume the same execution context.
+    const containerFromResponse = (
+      response as unknown as { container?: { id?: string } }
+    ).container;
+    if (containerFromResponse?.id) {
+      containerId = containerFromResponse.id;
+    }
 
     // pause_turn: a server tool (e.g. web_search) ran mid-turn and the model needs
     // another iteration to process the results and finish its response. Push the current
