@@ -39,11 +39,28 @@ export async function runWorkflow(workflow: WorkflowInput) {
     const eventData = await runEventDiscovery(input);
     vectorUpsert("competition", `event:${input}`, eventData).catch(() => {});
 
-    const resultsOutput = await runCompetitionResults(
-      `${input}\n\nOrchestrator context:\n${orchestratorContext}\n\nEvent metadata from FIG:\n${eventData}`,
-    );
-    vectorUpsert("competition", input, resultsOutput).catch(() => {});
-    researchContext = `Event metadata:\n${eventData}\n\nCompetition results:\n${resultsOutput}`;
+    // Only run competition results if the event discovery found results files.
+    // For upcoming events (previews), the FIG API returns entry lists / nominative
+    // registrations but no results — running the agent would waste 5+ turns finding nothing.
+    let hasResults = false;
+    try {
+      const parsed = JSON.parse(eventData);
+      hasResults =
+        Array.isArray(parsed.files) &&
+        parsed.files.some((f: { type?: string }) => f.type === "results");
+    } catch {}
+
+    let resultsOutput = "";
+    if (hasResults) {
+      resultsOutput = await runCompetitionResults(
+        `${input}\n\nOrchestrator context:\n${orchestratorContext}\n\nEvent metadata from FIG:\n${eventData}`,
+      );
+      vectorUpsert("competition", input, resultsOutput).catch(() => {});
+    }
+
+    researchContext = resultsOutput
+      ? `Event metadata:\n${eventData}\n\nCompetition results:\n${resultsOutput}`
+      : `Event metadata:\n${eventData}`;
   } else {
     const { category: athleteCheck } = await classifyAthleteRelated(input);
     if (athleteCheck === "athlete_related") {
